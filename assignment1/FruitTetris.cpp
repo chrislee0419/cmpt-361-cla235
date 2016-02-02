@@ -17,6 +17,7 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 #include "include/Angel.h"
 #include <cstdlib>
 #include <iostream>
+#include <ctime>
 
 using namespace std;
 
@@ -67,7 +68,7 @@ vec2 TRotations[4][4] =
 		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)}
 	};
 
-vec IRotations[2][4] =
+vec2 IRotations[2][4] =
 	{
 		{vec2(-2,0),vec2(-1,0),vec2(0,0),vec2(1,0)},
 		{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)},
@@ -80,7 +81,10 @@ vec4 yellow = 	vec4(0.8, 0.8, 0.0, 1.0);
 vec4 green = 	vec4(0.1, 0.8, 0.1, 1.0);
 vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0); 
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
-vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0); 
+vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
+
+// colours array
+vec4 allColours[5] = {purple, red, yellow, green, orange};
  
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20]; 
@@ -140,17 +144,29 @@ void updatetile()
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
+	srand(time(NULL));
 	tilepos = vec2(5 , 19); // Put the tile at the top of the board
+
+	// Choose which type of tile to use
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++)
-		tile[i] = allRotations[0][i]; // Get the 4 pieces of the new tile
+		tile[i] = TRotations[0][i]; // Get the 4 pieces of the new tile
 	updatetile(); 
 
 	// Update the color VBO of current tile
 	vec4 newcolours[24];
-	for (int i = 0; i < 24; i++)
-		newcolours[i] = green; // You should randomlize the color
+	vec4 blockcolour;
+	for (int i = 0; i < 24; i+=6) {
+		blockcolour = allColours[rand() % 5];
+		newcolours[i] = blockcolour;
+		newcolours[i+1] = blockcolour;
+		newcolours[i+2] = blockcolour;
+		newcolours[i+3] = blockcolour;
+		newcolours[i+4] = blockcolour;
+		newcolours[i+5] = blockcolour;
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current tile vertex colours
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours); // Put the colour data in the VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
