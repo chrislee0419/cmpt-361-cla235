@@ -50,22 +50,22 @@ vec2 LeftLRotations[4][4] =
 
 vec2 RightSRotations[2][4] =
 	{
-		{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)},
-		{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)}
+		{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)},
+		{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)}
 	};
 
 vec2 LeftSRotations[2][4] =
 	{
-		{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)},
-		{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)}
+		{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)},
+		{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)}
 	};
 
 vec2 TRotations[4][4] =
 	{
-		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
-		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)},
 		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,-1)},
-		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)}
+		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)},
+		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
+		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)}
 	};
 
 vec2 IRotations[2][4] =
@@ -105,6 +105,7 @@ GLuint locysize;
 // VAO and VBO
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
 GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -146,7 +147,7 @@ void newtile()
 {
 	srand(time(NULL));		// seed the rand() function
 
-	int block, orientation;
+	int block, orientation, pos;
 
 	// Update the geometry VBO of current tile
 	if ((block = rand() % 6) == 0) {
@@ -175,7 +176,9 @@ void newtile()
 	}
 
 	// randomize starting position
-	int pos;
+	///////////////////////////////////////////////////////
+	// INCOMPLETE (should take into account laid blocks) //
+	///////////////////////////////////////////////////////
 	// "I" block (4 wide or 1 wide)
 	if (block == 5) {
 		if (orientation == 0) pos = (rand() % 7) + 2;
@@ -187,7 +190,7 @@ void newtile()
 		else pos = (rand() % 9) + 1;
 	}
 	// upright "S" block (2 wide)
-	else if ((block == 2 || block == 3) && orientation == 1) pos = rand() % 9;
+	else if ((block == 2 || block == 3) && orientation == 0) pos = rand() % 9;
 	// everything else (3 wide)
 	else pos = (rand() % 8) + 1;
 
@@ -433,6 +436,17 @@ void reshape(GLsizei w, GLsizei h)
 // Handle arrow key keypresses
 void special(int key, int x, int y)
 {
+	switch(key) {
+		case GLUT_KEY_UP:
+			break;
+		case GLUT_KEY_DOWN:
+			break;
+		case GLUT_KEY_LEFT:
+			break;
+		case GLUT_KEY_RIGHT:
+			break;
+	}
+	glutPostRedisplay();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -464,6 +478,15 @@ void idle(void)
 
 //-------------------------------------------------------------------------------------------------------------------
 
+void timer(int value) {
+	tilepos = tilepos - vec2(0,1);
+	updatetile();
+	glutPostRedisplay();
+	glutTimerFunc(800, timer, 0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
@@ -480,6 +503,7 @@ int main(int argc, char **argv)
 	glutSpecialFunc(special);
 	glutKeyboardFunc(keyboard);
 	glutIdleFunc(idle);
+	glutTimerFunc(800, timer, 0);
 
 	glutMainLoop(); // Start main loop
 	return 0;
