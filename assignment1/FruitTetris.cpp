@@ -144,14 +144,37 @@ void updatetile()
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
-	srand(time(NULL));
-	tilepos = vec2(5 , 19); // Put the tile at the top of the board
+	srand(time(NULL));		// seed the rand() function
 
-	// Choose which type of tile to use
+	int block, orientation;
 
 	// Update the geometry VBO of current tile
-	for (int i = 0; i < 4; i++)
-		tile[i] = TRotations[0][i]; // Get the 4 pieces of the new tile
+	if ((block = rand() % 6) == 0) {
+		orientation = rand() % 4;
+		for (int i = 0; i < 4; i++) tile[i] = RightLRotations[orientation][i];
+	}
+	else if (block == 1) {
+		orientation = rand() % 4;
+		for (int i = 0; i < 4; i++) tile[i] = LeftLRotations[orientation][i];
+	}
+	else if (block == 2) {
+		orientation = rand() % 2;
+		for (int i = 0; i < 4; i++) tile[i] = RightSRotations[orientation][i];
+	}
+	else if (block == 3) {
+		orientation = rand() % 2;
+		for (int i = 0; i < 4; i++) tile[i] = LeftSRotations[orientation][i];
+	}
+	else if (block == 4) {
+		orientation = rand() % 4;
+		for (int i = 0; i < 4; i++) tile[i] = TRotations[orientation][i];
+	}
+	else {
+		orientation = rand() % 2;
+		for (int i = 0; i < 4; i++) tile[i] = IRotations[orientation][i];
+	}
+
+	tilepos = vec2(5 , 19); // Put the tile at the top of the board
 	updatetile(); 
 
 	// Update the color VBO of current tile
