@@ -480,6 +480,13 @@ void idle(void)
 
 void timer(int value) {
 	tilepos = tilepos - vec2(0,1);
+
+	// TEMPORARY
+	// destroys block when it reaches the bottom
+	// then create a new one at the top
+	for (int i = 0; i < 4; i++) {
+		if ((tilepos + tile[i])[1] < 0) {newtile(); break;}
+	}
 	updatetile();
 	glutPostRedisplay();
 	glutTimerFunc(800, timer, 0);
