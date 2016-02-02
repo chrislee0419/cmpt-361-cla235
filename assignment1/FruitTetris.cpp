@@ -31,11 +31,47 @@ vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coord
 
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
-vec2 allRotationsLshape[4][4] = 
-	{{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
-	{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
-	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}};
+vec2 RightLRotations[4][4] = 
+	{
+		{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
+		{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
+		{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
+		{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}
+	};
+
+vec2 LeftLRotations[4][4] = 
+	{
+		{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
+		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)},
+		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(1,-1)},
+		{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)}
+	};
+
+vec2 RightSRotations[2][4] =
+	{
+		{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)},
+		{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)}
+	};
+
+vec2 LeftSRotations[2][4] =
+	{
+		{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)},
+		{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)}
+	};
+
+vec2 TRotations[4][4] =
+	{
+		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
+		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)},
+		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,-1)},
+		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)}
+	};
+
+vec IRotations[2][4] =
+	{
+		{vec2(-2,0),vec2(-1,0),vec2(0,0),vec2(1,0)},
+		{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)},
+	};
 
 // colors
 vec4 purple = 	vec4(0.5, 0.0, 1.0, 1.0);
@@ -108,7 +144,7 @@ void newtile()
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++)
-		tile[i] = allRotationsLshape[0][i]; // Get the 4 pieces of the new tile
+		tile[i] = allRotations[0][i]; // Get the 4 pieces of the new tile
 	updatetile(); 
 
 	// Update the color VBO of current tile
