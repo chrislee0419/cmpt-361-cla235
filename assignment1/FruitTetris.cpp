@@ -42,10 +42,10 @@ vec2 RightLRotations[4][4] =
 
 vec2 LeftLRotations[4][4] = 
 	{
-		{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
-		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)},
 		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(1,-1)},
-		{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)}
+		{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)},
+		{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
+		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)}
 	};
 
 vec2 RightSRotations[2][4] =
@@ -174,7 +174,24 @@ void newtile()
 		for (int i = 0; i < 4; i++) tile[i] = IRotations[orientation][i];
 	}
 
-	tilepos = vec2(5 , 19); // Put the tile at the top of the board
+	// randomize starting position
+	int pos;
+	// "I" block (4 wide or 1 wide)
+	if (block == 5) {
+		if (orientation == 0) pos = (rand() % 7) + 2;
+		else pos = rand() % 10;
+	}
+	// upright "L" block (2 wide)
+	else if (block < 2 && (orientation == 1 || orientation == 3)) {
+		if (orientation == 1) pos = rand() % 9;
+		else pos = (rand() % 9) + 1;
+	}
+	// upright "S" block (2 wide)
+	else if ((block == 2 || block == 3) && orientation == 1) pos = rand() % 9;
+	// everything else (3 wide)
+	else pos = (rand() % 8) + 1;
+
+	tilepos = vec2(pos , 19); // Put the tile at the top of the board
 	updatetile(); 
 
 	// Update the color VBO of current tile
