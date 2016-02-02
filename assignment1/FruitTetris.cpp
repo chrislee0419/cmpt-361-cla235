@@ -38,9 +38,13 @@ vec2 allRotationsLshape[4][4] =
 	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}};
 
 // colors
-vec4 orange = vec4(1.0, 0.5, 0.0, 1.0); 
-vec4 white  = vec4(1.0, 1.0, 1.0, 1.0);
-vec4 black  = vec4(0.0, 0.0, 0.0, 1.0); 
+vec4 purple = 	vec4(0.5, 0.0, 1.0, 1.0);
+vec4 red = 		vec4(1.0, 0.1, 0.1, 1.0);
+vec4 yellow = 	vec4(0.8, 0.8, 0.0, 1.0);
+vec4 green = 	vec4(0.1, 0.8, 0.1, 1.0);
+vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0); 
+vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
+vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0); 
  
 //board[x][y] represents whether the cell (x,y) is occupied
 bool board[10][20]; 
@@ -110,7 +114,7 @@ void newtile()
 	// Update the color VBO of current tile
 	vec4 newcolours[24];
 	for (int i = 0; i < 24; i++)
-		newcolours[i] = orange; // You should randomlize the color
+		newcolours[i] = green; // You should randomlize the color
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]); // Bind the VBO containing current tile vertex colours
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours); // Put the colour data in the VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
