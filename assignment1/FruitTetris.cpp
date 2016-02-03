@@ -32,47 +32,33 @@ vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coord
 
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
-vec2 RightLRotations[4][4] = 
-	{
-		{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-		{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
-		{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
-		{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)}
-	};
-
-vec2 LeftLRotations[4][4] = 
-	{
-		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(1,-1)},
-		{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)},
-		{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
-		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)}
-	};
-
-vec2 RightSRotations[2][4] =
-	{
-		{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)},
-		{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)}
-	};
-
-vec2 LeftSRotations[2][4] =
-	{
-		{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)},
-		{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)}
-	};
-
-vec2 TRotations[4][4] =
-	{
-		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,-1)},
-		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)},
-		{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
-		{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)}
-	};
-
-vec2 IRotations[2][4] =
-	{
-		{vec2(-2,0),vec2(-1,0),vec2(0,0),vec2(1,0)},
-		{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)},
-	};
+// 0 - 3	= Right "L"
+// 4 - 7	= Left "L"
+// 8 - 9	= Right "S"
+// 10 - 11	= Left "S"
+// 12 - 15	= "T"
+// 16 - 17	= "I"
+vec2 AllRotations[18][4] = 
+{
+	{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
+	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
+	{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
+	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)},
+	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(1,-1)},
+	{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)},
+	{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
+	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)},
+	{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)},
+	{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)},
+	{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)},
+	{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)},
+	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,-1)},
+	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)},
+	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
+	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)},
+	{vec2(-2,0),vec2(-1,0),vec2(0,0),vec2(1,0)},
+	{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)}
+};
 
 // colors
 vec4 purple = 	vec4(0.5, 0.0, 1.0, 1.0);
@@ -152,27 +138,27 @@ void newtile()
 	// Update the geometry VBO of current tile
 	if ((block = rand() % 6) == 0) {
 		orientation = rand() % 4;
-		for (int i = 0; i < 4; i++) tile[i] = RightLRotations[orientation][i];
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation][i];
 	}
 	else if (block == 1) {
 		orientation = rand() % 4;
-		for (int i = 0; i < 4; i++) tile[i] = LeftLRotations[orientation][i];
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 4][i];
 	}
 	else if (block == 2) {
 		orientation = rand() % 2;
-		for (int i = 0; i < 4; i++) tile[i] = RightSRotations[orientation][i];
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 8][i];
 	}
 	else if (block == 3) {
 		orientation = rand() % 2;
-		for (int i = 0; i < 4; i++) tile[i] = LeftSRotations[orientation][i];
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 10][i];
 	}
 	else if (block == 4) {
 		orientation = rand() % 4;
-		for (int i = 0; i < 4; i++) tile[i] = TRotations[orientation][i];
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 12][i];
 	}
 	else {
 		orientation = rand() % 2;
-		for (int i = 0; i < 4; i++) tile[i] = IRotations[orientation][i];
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 16][i];
 	}
 
 	// randomize starting position
@@ -358,14 +344,6 @@ void init()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Rotates the current tile, if there is room
-void rotate()
-{      
-
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 // Checks if the specified row (0 is the bottom 19 the top) is full
 // If every cell in the row is occupied, it will clear that cell and everything above it will shift down one row
 void checkfullrow(int row)
@@ -433,6 +411,43 @@ bool movetile(vec2 direction)
 	updatetile();
 	return true;
 }
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Rotates the current tile, if there is room
+void rotate()
+{      
+	int i, j;
+	// check to see what block and orientation it currently is
+	for (i = 0; i < 18; i++) {
+		for (j = 0; j < 4; j++) {
+			if (AllRotations[i][j][0] != tile[j][0]) break;
+			else if (AllRotations[i][j][1] != tile[j][1]) break;
+		}
+		if (j == 4) break;
+	}
+	if (i == 18) return;
+
+	// find the next orientation
+	i++;
+	if (i == 4 || i == 8 || i == 16) i -= 4;
+	else if (i == 10 || i == 12 || i == 18) i -= 2;
+
+	// copy arrays
+	vec2 oldorientation[4] = tile;
+	for (j = 0; j < 4; j++) {
+		oldorientation[j] = tile[j];
+		tile[j] = AllRotations[i][j];
+	}
+
+	// check if anything obstructs the rotation
+	if ( !movetile(vec2(0,0)) ) {
+		for (j = 0; j < 4; j++)
+			tile[j] = oldorientation[j];
+	}
+	else updatetile();
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 
 // Starts the game over - empties the board, creates new tiles, resets line counters
@@ -482,6 +497,7 @@ void special(int key, int x, int y)
 {
 	switch(key) {
 		case GLUT_KEY_UP:
+			rotate();
 			break;
 		case GLUT_KEY_DOWN:
 			break;
