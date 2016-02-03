@@ -378,7 +378,33 @@ void checkfullrow(int row)
 // Places the current tile - update the board vertex colour VBO and the array maintaining occupied cells
 void settile()
 {
-	
+	int x, y;
+	// set the board positions
+	for (int i = 0; i < 4; i++) {
+		x = tilepos[0] + tile[i][0];
+		y = tilepos[1] + tile[i][1];
+		board[x][y] = true;
+	}
+
+	vec4 colours[24] = {0};
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colours), colours);
+
+	int currentblock;
+	for (int i = 0; i < 4; i++) {
+		currentblock = (tilepos[0] + tile[i][0])*6 + (tilepos[1] + tile[i][1])*60;
+		boardcolours[currentblock] = colours[i*6];
+		boardcolours[currentblock + 1] = colours[i*6];
+		boardcolours[currentblock + 2] = colours[i*6];
+		boardcolours[currentblock + 3] = colours[i*6];
+		boardcolours[currentblock + 4] = colours[i*6];
+		boardcolours[currentblock + 5] = colours[i*6];
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), boardcolours);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -387,7 +413,25 @@ void settile()
 // Returns true if the tile was successfully moved, or false if there was some issue
 bool movetile(vec2 direction)
 {
-	return false;
+	vec2 newblockpos;
+	for (int i = 0; i < 4; i++) {
+		newblockpos = tilepos + tile[i] + direction;
+
+		// check if it has hit a block
+		if (board[(int)(newblockpos[0])][(int)(newblockpos[1])])
+			return false;
+
+		// check if it has hit the side of the board
+		else if (newblockpos[0] < 0 || newblockpos[0] > 9)
+			return false;
+
+		// check if it has hit the bottom of the board
+		else if (newblockpos[1] < 0)
+			return false;
+	}
+	tilepos += direction;
+	updatetile();
+	return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
 
@@ -442,8 +486,10 @@ void special(int key, int x, int y)
 		case GLUT_KEY_DOWN:
 			break;
 		case GLUT_KEY_LEFT:
+			movetile(vec2(-1,0));
 			break;
 		case GLUT_KEY_RIGHT:
+			movetile(vec2(1,0));
 			break;
 	}
 	glutPostRedisplay();
@@ -479,15 +525,11 @@ void idle(void)
 //-------------------------------------------------------------------------------------------------------------------
 
 void timer(int value) {
-	tilepos = tilepos - vec2(0,1);
-
-	// TEMPORARY
-	// destroys block when it reaches the bottom
-	// then create a new one at the top
-	for (int i = 0; i < 4; i++) {
-		if ((tilepos + tile[i])[1] < 0) {newtile(); break;}
+	if ( !movetile(vec2(0,-1))) {
+		settile();
+		newtile();
 	}
-	updatetile();
+
 	glutPostRedisplay();
 	glutTimerFunc(800, timer, 0);
 }
