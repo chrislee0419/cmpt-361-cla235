@@ -38,24 +38,29 @@ vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coord
 // 10 - 11	= Left "S"
 // 12 - 15	= "T"
 // 16 - 17	= "I"
-vec2 AllRotations[18][4] = 
+vec2 AllRotations[24][4] = 
 {
-	{vec2(0, 0), vec2(-1,0), vec2(1, 0), vec2(-1,-1)},
-	{vec2(0, 1), vec2(0, 0), vec2(0,-1), vec2(1, -1)},     
-	{vec2(1, 1), vec2(-1,0), vec2(0, 0), vec2(1,  0)},  
-	{vec2(-1,1), vec2(0, 1), vec2(0, 0), vec2(0, -1)},
+	{vec2(-1,-1), vec2(-1,0), vec2(0,0), vec2(1,0)},
+	{vec2(1,-1), vec2(0,-1), vec2(0,0), vec2(0,1)},     
+	{vec2(1,1), vec2(1,0), vec2(0,0), vec2(-1,0)},  
+	{vec2(-1,1), vec2(0,1), vec2(0,0), vec2(0,-1)},
+
 	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(1,-1)},
 	{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)},
 	{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
 	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)},
+
 	{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)},
 	{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)},
+
 	{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)},
 	{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)},
+
 	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,-1)},
 	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)},
 	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
 	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)},
+
 	{vec2(-2,0),vec2(-1,0),vec2(0,0),vec2(1,0)},
 	{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)}
 };
@@ -133,10 +138,11 @@ void newtile()
 {
 	srand(time(NULL));		// seed the rand() function
 
-	int block, orientation, pos;
+	int block = 1; // rand() % 6;
+	int orientation, pos;
 
 	// Update the geometry VBO of current tile
-	if ((block = rand() % 6) == 0) {
+	if (block == 0) {
 		orientation = rand() % 4;
 		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation][i];
 	}
@@ -434,7 +440,7 @@ void rotate()
 	else if (i == 10 || i == 12 || i == 18) i -= 2;
 
 	// copy arrays
-	vec2 oldorientation[4] = tile;
+	vec2 oldorientation[4];
 	for (j = 0; j < 4; j++) {
 		oldorientation[j] = tile[j];
 		tile[j] = AllRotations[i][j];
@@ -445,7 +451,6 @@ void rotate()
 		for (j = 0; j < 4; j++)
 			tile[j] = oldorientation[j];
 	}
-	else updatetile();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
