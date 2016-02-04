@@ -34,10 +34,10 @@ vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coord
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
 // 0 - 3	= Right "L"
 // 4 - 7	= Left "L"
-// 8 - 9	= Right "S"
-// 10 - 11	= Left "S"
-// 12 - 15	= "T"
-// 16 - 17	= "I"
+// 8 - 11	= Right "S" x 2
+// 12 - 15	= Left "S" x 2
+// 16 - 19	= "T"
+// 20 - 23	= "I" x 2
 vec2 AllRotations[24][4] = 
 {
 	{vec2(-1,-1), vec2(-1,0), vec2(0,0), vec2(1,0)},
@@ -45,24 +45,30 @@ vec2 AllRotations[24][4] =
 	{vec2(1,1), vec2(1,0), vec2(0,0), vec2(-1,0)},  
 	{vec2(-1,1), vec2(0,1), vec2(0,0), vec2(0,-1)},
 
-	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(1,-1)},
+	{vec2(1,-1),vec2(1,0),vec2(0,0),vec2(-1,0)},
 	{vec2(1,1),vec2(0,1),vec2(0,0),vec2(0,-1)},
-	{vec2(0,0),vec2(-1,0),vec2(1,0),vec2(-1,1)},
-	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,-1)},
+	{vec2(-1,1),vec2(-1,0),vec2(0,0),vec2(1,0)},
+	{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(0,1)},
 
-	{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)},
 	{vec2(-1,0),vec2(0,0),vec2(0,-1),vec2(1,-1)},
+	{vec2(0,-1),vec2(0,0),vec2(1,0),vec2(1,1)},
+	{vec2(1,-1),vec2(0,-1),vec2(0,0),vec2(-1,0)},
+	{vec2(1,1),vec2(1,0),vec2(0,0),vec2(0,-1)},
 
 	{vec2(-1,-1),vec2(0,-1),vec2(0,0),vec2(1,0)},
+	{vec2(1,-1),vec2(1,0),vec2(0,0),vec2(0,1)},
+	{vec2(1,0),vec2(0,0),vec2(0,-1),vec2(-1,-1)},
 	{vec2(0,1),vec2(0,0),vec2(1,0),vec2(1,-1)},
 
 	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,-1)},
-	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(1,0)},
-	{vec2(-1,0),vec2(0,0),vec2(1,0),vec2(0,1)},
+	{vec2(0,-1),vec2(0,0),vec2(0,1),vec2(1,0)},
+	{vec2(1,0),vec2(0,0),vec2(-1,0),vec2(0,1)},
 	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(-1,0)},
 
 	{vec2(-2,0),vec2(-1,0),vec2(0,0),vec2(1,0)},
-	{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)}
+	{vec2(0,-2),vec2(0,-1),vec2(0,0),vec2(0,1)},
+	{vec2(1,0),vec2(0,0),vec2(-1,0),vec2(-2,0)},
+	{vec2(0,1),vec2(0,0),vec2(0,-1),vec2(0,-2)}
 };
 
 // colors
@@ -138,33 +144,34 @@ void newtile()
 {
 	srand(time(NULL));		// seed the rand() function
 
-	int block = 1; // rand() % 6;
-	int orientation, pos;
+	int block = rand() % 6;
+	int orientation = rand() % 4;
+	int pos;
 
 	// Update the geometry VBO of current tile
+	// Right "L"
 	if (block == 0) {
-		orientation = rand() % 4;
 		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation][i];
 	}
+	// Left "L"
 	else if (block == 1) {
-		orientation = rand() % 4;
 		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 4][i];
 	}
+	// Right "S"
 	else if (block == 2) {
-		orientation = rand() % 2;
 		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 8][i];
 	}
+	// Left "S"
 	else if (block == 3) {
-		orientation = rand() % 2;
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 10][i];
-	}
-	else if (block == 4) {
-		orientation = rand() % 4;
 		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 12][i];
 	}
-	else {
-		orientation = rand() % 2;
+	// "T"
+	else if (block == 4) {
 		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 16][i];
+	}
+	// "I"
+	else {
+		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 20][i];
 	}
 
 	// randomize starting position
@@ -173,7 +180,7 @@ void newtile()
 	///////////////////////////////////////////////////////
 	// "I" block (4 wide or 1 wide)
 	if (block == 5) {
-		if (orientation == 0) pos = (rand() % 7) + 2;
+		if (orientation % 2 == 0) pos = (rand() % 7) + 2;
 		else pos = rand() % 10;
 	}
 	// upright "L" block (2 wide)
@@ -182,7 +189,7 @@ void newtile()
 		else pos = (rand() % 9) + 1;
 	}
 	// upright "S" block (2 wide)
-	else if ((block == 2 || block == 3) && orientation == 0) pos = rand() % 9;
+	else if ((block == 2 || block == 3) && orientation % 2 == 0) pos = rand() % 9;
 	// everything else (3 wide)
 	else pos = (rand() % 8) + 1;
 
@@ -425,19 +432,19 @@ void rotate()
 {      
 	int i, j;
 	// check to see what block and orientation it currently is
-	for (i = 0; i < 18; i++) {
+	for (i = 0; i < 24; i++) {
 		for (j = 0; j < 4; j++) {
 			if (AllRotations[i][j][0] != tile[j][0]) break;
 			else if (AllRotations[i][j][1] != tile[j][1]) break;
 		}
 		if (j == 4) break;
 	}
-	if (i == 18) return;
+	if (i == 24) return;
 
 	// find the next orientation
 	i++;
-	if (i == 4 || i == 8 || i == 16) i -= 4;
-	else if (i == 10 || i == 12 || i == 18) i -= 2;
+	if (i % 4 == 0)
+		i -= 4;
 
 	// copy arrays
 	vec2 oldorientation[4];
@@ -505,6 +512,7 @@ void special(int key, int x, int y)
 			rotate();
 			break;
 		case GLUT_KEY_DOWN:
+			movetile(vec2(0,-1));
 			break;
 		case GLUT_KEY_LEFT:
 			movetile(vec2(-1,0));
