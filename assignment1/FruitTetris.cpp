@@ -144,56 +144,40 @@ void newtile()
 {
 	srand(time(NULL));		// seed the rand() function
 
-	int block = rand() % 6;
-	int orientation = rand() % 4;
-	int pos;
+	int orientation = rand() % 24;
+	int pos = -1;
 
 	// Update the geometry VBO of current tile
-	// Right "L"
-	if (block == 0) {
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation][i];
-	}
-	// Left "L"
-	else if (block == 1) {
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 4][i];
-	}
-	// Right "S"
-	else if (block == 2) {
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 8][i];
-	}
-	// Left "S"
-	else if (block == 3) {
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 12][i];
-	}
-	// "T"
-	else if (block == 4) {
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 16][i];
-	}
-	// "I"
-	else {
-		for (int i = 0; i < 4; i++) tile[i] = AllRotations[orientation + 20][i];
-	}
+	for (int i = 0; i < 4; i++)
+		tile[i] = AllRotations[orientation][i];
 
 	// randomize starting position
 	///////////////////////////////////////////////////////
-	// INCOMPLETE (should take into account laid blocks) //
+	// INCOMPLETE (should end game/prevent infinite loop //
+	// when top row is filled) 							 //
 	///////////////////////////////////////////////////////
-	// "I" block (4 wide or 1 wide)
-	if (block == 5) {
-		if (orientation % 2 == 0) pos = (rand() % 7) + 2;
-		else pos = rand() % 10;
-	}
-	// upright "L" block (2 wide)
-	else if (block < 2 && (orientation == 1 || orientation == 3)) {
-		if (orientation == 1) pos = rand() % 9;
-		else pos = (rand() % 9) + 1;
-	}
-	// upright "S" block (2 wide)
-	else if ((block == 2 || block == 3) && orientation % 2 == 0) pos = rand() % 9;
-	// everything else (3 wide)
-	else pos = (rand() % 8) + 1;
+	while (pos < 0) {
+		pos = rand() % 10;
+		tilepos = vec2(pos , 19); // Put the tile at the top of the board
+		// check if pos causes any new tile to go over borders or existing blocks
+		for (int i = 0; i < 4; i++) {
+			int x = tilepos[0] + tile[i][0];
+			int y = tilepos[1] + tile[i][1];
 
-	tilepos = vec2(pos , 19); // Put the tile at the top of the board
+			// if a block is out of bounds
+			if (x < 0 || x > 9) {
+				printf("BOUNDS\n");
+				pos = -1;
+			}
+			// else if a block overlaps with an existing block
+			if (y < 20 && board[x][y]) {
+				printf("OVERLAP\n");
+				pos = -1;
+			}
+			// tile[i] is within bounds and does not overlap
+		}
+	}
+
 	updatetile(); 
 
 	// Update the color VBO of current tile
