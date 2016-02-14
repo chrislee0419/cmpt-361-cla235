@@ -139,6 +139,77 @@ void updatetile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// Returns largest continuous space (used to trigger game end)
+int checkrowspaces(int row)
+{
+	int max = 0, count = 0;
+
+	for (int i = 0; i < 10; i++) {
+		if (board[i][row])
+			count = 0;
+		else
+			count++;
+		if (count > max)
+			max = count;
+	}
+
+	return max;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Returns true if the provided orientation can be fit somewhere at the top
+// (used to trigger game end/choose other piece)
+bool checkpiecefit(int orientation)
+{
+	vec2 rot[4];
+	vec2 pos = vec2(0, 19);
+	int max = 10, x, y, j;
+
+	bool farleft, left = false, right = false;
+
+	// copy the orientation you want to test
+	for (int i = 0; i < 4; i++) {
+		rot[i] = AllRotations[orientation][i];
+
+		// is [-1][x] used?
+		left = left || (rot[i][0] == -1);
+		// is [1][x] used?
+		right = right || (rot[i][0] == 1);
+	}
+
+	// is [-2][x] (only for sideways I) used?
+	farleft = (orientation == 17);
+
+	// setting starting position and bounds
+	if (farleft) {
+		max -= 2;
+		pos = pos + vec2(2,0);
+	}
+	else if (left) {
+		max--;
+		pos = pos + vec2(1,0);
+	}
+	if (right)
+		max--;
+
+	// try to find a valid position for the specific orientation
+	for (int i = 0, i < max; i++) {
+		for (j = 0; j < 4; j++) {
+			x = rot[j][0] + pos[0];
+			y = rot[j][1] + pos[1];
+			if (board[x][y])
+				break;
+		}
+
+		if (j != 4)
+			return true;
+
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
@@ -538,7 +609,7 @@ void idle(void)
 //-------------------------------------------------------------------------------------------------------------------
 
 void timer(int value) {
-	if ( !movetile(vec2(0,-1))) {
+	if ( !movetile(vec2(0,-1)) ) {
 		settile();
 		newtile();
 	}
