@@ -158,12 +158,13 @@ int checkrowspaces(int row)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Returns true if the provided orientation can be fit somewhere at the top
+// Returns true if the provided orientation can be fit somewhere
+// near the top without overflowing off the top of the screen
 // (used to trigger game end/choose other piece)
 bool checkpiecefit(int orientation)
 {
 	vec2 rot[4];
-	vec2 pos = vec2(0, 19);
+	vec2 pos = vec2(0, 18);
 	int max = 10, x, y, j;
 
 	bool farleft, left = false, right = false;
@@ -201,11 +202,11 @@ bool checkpiecefit(int orientation)
 			if (board[x][y])
 				break;
 		}
-
 		if (j != 4)
 			return true;
-
 	}
+
+	return false;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -217,6 +218,7 @@ void newtile()
 
 	int orientation = rand() % 24;
 	int pos = -1;
+	int maxspace = checkrowspaces(19);
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++)
@@ -424,27 +426,29 @@ void checkfullrow(int row)
 // Places the current tile - update the board vertex colour VBO and the array maintaining occupied cells
 void settile()
 {
-	int x, y;
-	// set the board positions
-	for (int i = 0; i < 4; i++) {
-		x = tilepos[0] + tile[i][0];
-		y = tilepos[1] + tile[i][1];
-		board[x][y] = true;
-	}
+	int x, y, currentblock;
 
+	// retrieve colours from current piece VBO
 	vec4 colours[24] = {0};
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colours), colours);
-
-	int currentblock;
+	
 	for (int i = 0; i < 4; i++) {
-		currentblock = (tilepos[0] + tile[i][0])*6 + (tilepos[1] + tile[i][1])*60;
-		boardcolours[currentblock] = colours[i*6];
-		boardcolours[currentblock + 1] = colours[i*6];
-		boardcolours[currentblock + 2] = colours[i*6];
-		boardcolours[currentblock + 3] = colours[i*6];
-		boardcolours[currentblock + 4] = colours[i*6];
-		boardcolours[currentblock + 5] = colours[i*6];
+		x = tilepos[0] + tile[i][0];
+		y = tilepos[1] + tile[i][1];
+
+		// make sure the current block does not overflow off the top
+		if (y < 20) {
+			board[x][y] = true;
+
+			currentblock = x*6 + y*60;
+			boardcolours[currentblock] = colours[i*6];
+			boardcolours[currentblock + 1] = colours[i*6];
+			boardcolours[currentblock + 2] = colours[i*6];
+			boardcolours[currentblock + 3] = colours[i*6];
+			boardcolours[currentblock + 4] = colours[i*6];
+			boardcolours[currentblock + 5] = colours[i*6];
+		}
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), boardcolours);
