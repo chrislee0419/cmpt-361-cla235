@@ -355,7 +355,45 @@ void init()
 // If every cell in the row is occupied, it will clear that cell and everything above it will shift down one row
 void checkfullrow(int row)
 {
+	int i;
 
+	for (i = 0; i < 10; i++) {
+		if ( !board[i][row] )
+			break;
+	}
+	// if the row is not full, return
+	if (i != 10)
+		return;
+
+	// shift down all rows above the specified row
+	for (i = row; i < 20; i++) {
+		// for each block in the row
+		for (int j = 0; j < 10; j++) {
+			// for every row except for the top
+			if (i != 19) {
+				board[j][i] = board[j][i+1];
+
+				// replace row with colours of row above
+				for (int k = 0; k < 6; k++)
+					boardcolours[j*6 + i*60 + k] = boardcolours[j*6 + (i+1)*60 + k];
+			}
+			// for top row
+			else {
+				board[j][i] = false;
+
+				// replace top row with black
+				for (int k = 0; k < 6; k++)
+					boardcolours[j*6 + i*60 + k] = black;
+			}
+		}
+	}
+
+	// refresh the colours in the buffer
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec4)*1200, boardcolours);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -388,7 +426,6 @@ void settile()
 		}
 		// if it does overflow, end the game
 		else {
-			printf("settile(): triggered endgame\n");
 			endgame = true;
 			i = -1;
 		}
@@ -478,9 +515,28 @@ void timer(int value) {
 	if ( !endgame && !movetile(vec2(0,-1)) ) {
 		settile();
 
-		// if no partial lock out, create a new tile
-		if (!endgame)
+		// if no partial lock out, check for completed rows, then create a new tile
+		if (!endgame) {
+			// record which rows to check
+			bool checkrow[4] = {false, false, false, false};
+			for (int i = 0; i < 4; i++) {
+				if (tile[i][1] == 1)
+					checkrow[0] = true;
+				else if (tile[i][1] == 0)
+					checkrow[1] = true;
+				else if (tile[i][1] == -1)
+					checkrow[2] = true;
+				else
+					checkrow[3] = true;
+			}
+			// use checkfullrow(), starting with the topmost block filled
+			for (int i = 0; i < 4; i++) {
+				if (checkrow[i])
+					checkfullrow(tilepos[1] + 1 - i);
+			}
+
 			newtile();
+		}
 	}
 
 	glutPostRedisplay();
