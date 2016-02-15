@@ -105,7 +105,7 @@ GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current p
 GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 // trigger to pause game when it ends
-bool endgame = false;
+bool endgame;
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -148,8 +148,9 @@ void newtile()
 {
 	srand(time(NULL));		// seed the rand() function
 
-	int orientation = 20;
+	int orientation = rand() % 24;
 	int pos = -1;
+	bool overlap;
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++)
@@ -159,6 +160,9 @@ void newtile()
 	while (pos < 0) {
 		pos = rand() % 10;
 		tilepos = vec2(pos , 19); // Put the tile at the top of the board
+
+		overlap = false;
+
 		// check if pos causes any new tile to go over borders or existing blocks
 		for (int i = 0; i < 4; i++) {
 			int x = tilepos[0] + tile[i][0];
@@ -166,16 +170,18 @@ void newtile()
 
 			// if a block is out of bounds
 			if (x < 0 || x > 9) {
-				printf("BOUNDS\n");
 				pos = -1;
+				break;
 			}
-			// else if a block overlaps with an existing block, end current game
-			if (y < 20 && board[x][y]) {
-				printf("OVERLAP\n");
-				endgame = true;
+			// if a block overlaps with an existing block, record overlap
+			else if (y < 20 && board[x][y]) {
+				overlap = true;
 			}
-			// tile[i] is within bounds and does not overlap
+			// tile[i] is within bounds
 		}
+		// current block is within bounds, but overlaps with an existing block
+		if (pos > -1 && overlap)
+			endgame = true;
 	}
 
 	updatetile(); 
@@ -201,9 +207,6 @@ void newtile()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
-
-	if (endgame)
-		gameend();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -338,6 +341,7 @@ void init()
 	locysize = glGetUniformLocation(program, "ysize");
 
 	// Game initialization
+	endgame = false;
 	newtile(); // create new next tile
 
 	// set to default
@@ -371,34 +375,38 @@ void settile()
 		y = tilepos[1] + tile[i][1];
 
 		// make sure the current block does not overflow off the top
-		// if game has ended, allow overflow to show losing block
+		// if game has ended, allow overflow to prevent infinite loop
 		if (y < 20 || endgame) {
-			board[x][y] = true;
+			if (y < 20)
+				board[x][y] = true;
 
 			currentblock = x*6 + y*60;
-			boardcolours[currentblock] = colours[i*6];
-			boardcolours[currentblock + 1] = colours[i*6];
-			boardcolours[currentblock + 2] = colours[i*6];
-			boardcolours[currentblock + 3] = colours[i*6];
-			boardcolours[currentblock + 4] = colours[i*6];
-			boardcolours[currentblock + 5] = colours[i*6];
+			if (!endgame) {
+				for (int j = 0; j < 6; j++)
+					boardcolours[currentblock + j] = colours[i*6];
+			}
 		}
 		// if it does overflow, end the game
 		else {
+			printf("settile(): triggered endgame\n");
 			endgame = true;
-			for (int j = 0; j < 24; j++)
-				colours[j] = grey;
 			i = -1;
 		}
 	}
+
+	// set current tile to grey if endgame was triggered (show losing block)
+	if (endgame) {
+		vec4 greycolour[24];
+		for (int i = 0; i < 24; i++)
+			greycolour[i] = grey;
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(greycolour), greycolour);
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), boardcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
-
-	if (endgame)
-		gameend();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -465,18 +473,29 @@ void rotate()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Starts the game over - empties the board, creates new tiles, resets line counters
-void restart()
-{
+void timer(int value) {
+	// if no top out, continue the game
+	if ( !endgame && !movetile(vec2(0,-1)) ) {
+		settile();
 
+		// if no partial lock out, create a new tile
+		if (!endgame)
+			newtile();
+	}
+
+	glutPostRedisplay();
+	glutTimerFunc(700, timer, 0);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Used to stop the game
-void gameend()
+// Starts the game over - empties the board, creates new tiles, resets line counters
+void restart()
 {
+	initBoard();
 
+	endgame = false;
+	newtile();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -519,19 +538,22 @@ void reshape(GLsizei w, GLsizei h)
 // Handle arrow key keypresses
 void special(int key, int x, int y)
 {
-	switch(key) {
-		case GLUT_KEY_UP:
-			rotate();
-			break;
-		case GLUT_KEY_DOWN:
-			movetile(vec2(0,-1));
-			break;
-		case GLUT_KEY_LEFT:
-			movetile(vec2(-1,0));
-			break;
-		case GLUT_KEY_RIGHT:
-			movetile(vec2(1,0));
-			break;
+	// only record these keys if game has not ended
+	if (!endgame) {
+		switch(key) {
+			case GLUT_KEY_UP:
+				rotate();
+				break;
+			case GLUT_KEY_DOWN:
+				movetile(vec2(0,-1));
+				break;
+			case GLUT_KEY_LEFT:
+				movetile(vec2(-1,0));
+				break;
+			case GLUT_KEY_RIGHT:
+				movetile(vec2(1,0));
+				break;
+		}
 	}
 	glutPostRedisplay();
 }
@@ -565,18 +587,6 @@ void idle(void)
 
 //-------------------------------------------------------------------------------------------------------------------
 
-void timer(int value) {
-	if ( !movetile(vec2(0,-1)) ) {
-		settile();
-		newtile();
-	}
-
-	glutPostRedisplay();
-	glutTimerFunc(800, timer, 0);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
@@ -593,7 +603,7 @@ int main(int argc, char **argv)
 	glutSpecialFunc(special);
 	glutKeyboardFunc(keyboard);
 	glutIdleFunc(idle);
-	glutTimerFunc(800, timer, 0);
+	glutTimerFunc(700, timer, 0);
 
 	glutMainLoop(); // Start main loop
 	return 0;
