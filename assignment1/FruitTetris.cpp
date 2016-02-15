@@ -73,12 +73,13 @@ vec2 AllRotations[24][4] =
 
 // colors
 vec4 purple = 	vec4(0.5, 0.0, 1.0, 1.0);
-vec4 red = 		vec4(1.0, 0.1, 0.1, 1.0);
+vec4 red 	= 	vec4(1.0, 0.1, 0.1, 1.0);
 vec4 yellow = 	vec4(0.8, 0.8, 0.0, 1.0);
-vec4 green = 	vec4(0.1, 0.8, 0.1, 1.0);
+vec4 green 	= 	vec4(0.1, 0.8, 0.1, 1.0);
 vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0); 
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
+vec4 grey 	= 	vec4(0.5, 0.5, 0.5, 1.0);
 
 // colours array
 vec4 allColours[5] = {purple, red, yellow, green, orange};
@@ -102,6 +103,9 @@ GLuint locysize;
 // VAO and VBO
 GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
 GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+
+// trigger to pause game when it ends
+bool endgame = false;
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -139,96 +143,19 @@ void updatetile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Returns largest continuous space (used to trigger game end)
-int checkrowspaces(int row)
-{
-	int max = 0, count = 0;
-
-	for (int i = 0; i < 10; i++) {
-		if (board[i][row])
-			count = 0;
-		else
-			count++;
-		if (count > max)
-			max = count;
-	}
-
-	return max;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Returns true if the provided orientation can be fit somewhere
-// near the top without overflowing off the top of the screen
-// (used to trigger game end/choose other piece)
-bool checkpiecefit(int orientation)
-{
-	vec2 rot[4];
-	vec2 pos = vec2(0, 18);
-	int max = 10, x, y, j;
-
-	bool farleft, left = false, right = false;
-
-	// copy the orientation you want to test
-	for (int i = 0; i < 4; i++) {
-		rot[i] = AllRotations[orientation][i];
-
-		// is [-1][x] used?
-		left = left || (rot[i][0] == -1);
-		// is [1][x] used?
-		right = right || (rot[i][0] == 1);
-	}
-
-	// is [-2][x] (only for sideways I) used?
-	farleft = (orientation == 17);
-
-	// setting starting position and bounds
-	if (farleft) {
-		max -= 2;
-		pos = pos + vec2(2,0);
-	}
-	else if (left) {
-		max--;
-		pos = pos + vec2(1,0);
-	}
-	if (right)
-		max--;
-
-	// try to find a valid position for the specific orientation
-	for (int i = 0, i < max; i++) {
-		for (j = 0; j < 4; j++) {
-			x = rot[j][0] + pos[0];
-			y = rot[j][1] + pos[1];
-			if (board[x][y])
-				break;
-		}
-		if (j != 4)
-			return true;
-	}
-
-	return false;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
 	srand(time(NULL));		// seed the rand() function
 
-	int orientation = rand() % 24;
+	int orientation = 20;
 	int pos = -1;
-	int maxspace = checkrowspaces(19);
 
 	// Update the geometry VBO of current tile
 	for (int i = 0; i < 4; i++)
 		tile[i] = AllRotations[orientation][i];
 
 	// randomize starting position
-	///////////////////////////////////////////////////////
-	// INCOMPLETE (should end game/prevent infinite loop //
-	// when top row is filled) 							 //
-	///////////////////////////////////////////////////////
 	while (pos < 0) {
 		pos = rand() % 10;
 		tilepos = vec2(pos , 19); // Put the tile at the top of the board
@@ -242,10 +169,10 @@ void newtile()
 				printf("BOUNDS\n");
 				pos = -1;
 			}
-			// else if a block overlaps with an existing block
+			// else if a block overlaps with an existing block, end current game
 			if (y < 20 && board[x][y]) {
 				printf("OVERLAP\n");
-				pos = -1;
+				endgame = true;
 			}
 			// tile[i] is within bounds and does not overlap
 		}
@@ -257,7 +184,10 @@ void newtile()
 	vec4 newcolours[24];
 	vec4 blockcolour;
 	for (int i = 0; i < 24; i+=6) {
-		blockcolour = allColours[rand() % 5];
+		if (endgame)
+			blockcolour = grey;
+		else
+			blockcolour = allColours[rand() % 5];
 		newcolours[i] = blockcolour;
 		newcolours[i+1] = blockcolour;
 		newcolours[i+2] = blockcolour;
@@ -271,6 +201,9 @@ void newtile()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
+
+	if (endgame)
+		gameend();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -438,7 +371,8 @@ void settile()
 		y = tilepos[1] + tile[i][1];
 
 		// make sure the current block does not overflow off the top
-		if (y < 20) {
+		// if game has ended, allow overflow to show losing block
+		if (y < 20 || endgame) {
 			board[x][y] = true;
 
 			currentblock = x*6 + y*60;
@@ -449,12 +383,22 @@ void settile()
 			boardcolours[currentblock + 4] = colours[i*6];
 			boardcolours[currentblock + 5] = colours[i*6];
 		}
+		// if it does overflow, end the game
+		else {
+			endgame = true;
+			for (int j = 0; j < 24; j++)
+				colours[j] = grey;
+			i = -1;
+		}
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), boardcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
+
+	if (endgame)
+		gameend();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -526,6 +470,15 @@ void restart()
 {
 
 }
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Used to stop the game
+void gameend()
+{
+
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 
 // Draws the game
