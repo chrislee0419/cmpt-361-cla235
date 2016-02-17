@@ -107,6 +107,9 @@ GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex p
 // trigger to pause game when it ends
 bool endgame;
 
+// used to tag fruits for deletion
+bool fruittag[10][20];
+
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -436,9 +439,12 @@ void initBoard()
 	}
 
 	// Initially no cell is occupied
-	for (int i = 0; i < 10; i++)
-		for (int j = 0; j < 20; j++)
+	for (int i = 0; i < 10; i++) {
+		for (int j = 0; j < 20; j++) {
 			board[i][j] = false; 
+			fruittag[i][j] = false;
+		}
+	}
 
 
 	// *** set up buffer objects
@@ -533,6 +539,8 @@ void checkfullrow(int row)
 			// for every row except for the top
 			if (i != 19) {
 				board[j][i] = board[j][i+1];
+				// replace tagged fruits with tags from above
+				fruittag[j][i] = fruittag[j][i+1];
 
 				// replace row with colours of row above
 				for (int k = 0; k < 6; k++)
@@ -541,6 +549,7 @@ void checkfullrow(int row)
 			// for top row
 			else {
 				board[j][i] = false;
+				fruittag[j][i] = false;
 
 				// replace top row with black
 				for (int k = 0; k < 6; k++)
@@ -636,6 +645,294 @@ bool movetile(vec2 direction)
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// Compares input colour with board colour at coordinates (x,y)
+bool colourcheck(vec4 colour, int x, int y) {
+	return 	colour[0] == boardcolours[x*6 + y*60][0] &&
+			colour[1] == boardcolours[x*6 + y*60][1] &&
+			colour[2] == boardcolours[x*6 + y*60][2] &&
+			colour[3] == boardcolours[x*6 + y*60][3];
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Tag consecutive fruits for deletion after checking rows
+void tagfruits() {
+	printf("tagfruits(): entered\n");
+	vec4 currentcol;
+	int x, y;
+	bool left, right, up, down;
+
+	for (int i = 0; i < 4; i++) {
+		x = tile[i][0] + tilepos[0];
+		y = tile[i][1] + tilepos[1];
+		currentcol = boardcolours[x*6 + y*60];
+
+		// check if near edges
+		left = (x == 0);
+		right = (x == 9);
+		up = (y == 19);
+		down = (y == 0);
+
+
+		// check for threes where the current tile is the centre
+		// corner to corner checks
+		if ( !(up || down || left || right) ) {
+			// NW to SE
+			if (currentcol == boardcolours[(x-1)*6 + (y+1)*60] &&
+				currentcol == boardcolours[(x+1)*6 + (y-1)*60]) {
+				printf("tagfruits(): NW to SE\n");
+				fruittag[x][y] = true;
+				fruittag[x-1][y+1] = true;
+				fruittag[x+1][y-1] = true;
+			}
+			// SW to NE
+			if (currentcol == boardcolours[(x-1)*6 + (y-1)*60] &&
+				currentcol == boardcolours[(x+1)*6 + (y+1)*60]) {
+				printf("tagfruits(): SW to NE\n");
+				fruittag[x][y] = true;
+				fruittag[x-1][y-1] = true;
+				fruittag[x+1][y+1] = true;
+			}
+		}
+		// W to E check
+		if (	!(left || right)  &&
+				currentcol == boardcolours[(x-1)*6 + y*60] &&
+				currentcol == boardcolours[(x+1)*6 + y*60]) {
+			printf("tagfruits(): W to E\n");
+			fruittag[x][y] = true;
+			fruittag[x-1][y] = true;
+			fruittag[x+1][y] = true;
+		}
+		// N to S check
+		if (	!(up || down)  &&
+				currentcol == boardcolours[x*6 + (y-1)*60] &&
+				currentcol == boardcolours[x*6 + (y+1)*60]) {
+			printf("tagfruits(): N to S\n");
+			fruittag[x][y] = true;
+			fruittag[x][y-1] = true;
+			fruittag[x][y+1] = true;
+		}
+
+		// check for 3+ where the current tile is the end point
+		// checking northbound
+		if (y < 18 &&
+			currentcol == boardcolours[x*6 + (y+1)*60] &&
+			currentcol == boardcolours[x*6 + (y+2)*60]) {
+			printf("tagfruits(): N-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x][y+1] = true;
+			fruittag[x][y+2] = true;
+
+			// if 3+
+			for (int k = y+3; k < 20; k++) {
+				if (currentcol == boardcolours[x*6 + k*60])
+					fruittag[x][k] = true;
+				else
+					break;
+			}
+		}
+		// checking northeastbound
+		if (y < 18 &&
+			x < 8 &&
+			currentcol == boardcolours[(x+1)*6 + (y+1)*60] &&
+			currentcol == boardcolours[(x+2)*6 + (y+2)*60]) {
+			printf("tagfruits(): NE-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x+1][y+1] = true;
+			fruittag[x+2][y+2] = true;
+
+			// if 3+
+			int k = y+3;
+			for (int j = x+3; j < 10; j++) {
+				if (k < 20) {
+					if (currentcol == boardcolours[j*6 + k*60])
+						fruittag[j][k] = true;
+					else
+						break;
+					k++;
+				}
+				else
+					break;
+			}
+		}
+		// checking eastbound
+		if (x < 8 &&
+			currentcol == boardcolours[(x+1)*6 + y*60] &&
+			currentcol == boardcolours[(x+2)*6 + y*60]) {
+			printf("tagfruits(): E-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x+1][y] = true;
+			fruittag[x+2][y] = true;
+
+			// if 3+
+			for (int j = x+3; j < 10; j++) {
+				if (currentcol == boardcolours[j*6 + y*60])
+					fruittag[j][y] = true;
+				else
+					break;
+			}
+		}
+		// checking southeastbound
+		if (y > 1 &&
+			x < 8 &&
+			currentcol == boardcolours[(x+1)*6 + (y-1)*60] &&
+			currentcol == boardcolours[(x+2)*6 + (y-2)*60]) {
+			printf("tagfruits(): SE-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x+1][y-1] = true;
+			fruittag[x+2][y-2] = true;
+
+			// if 3+
+			int k = y-3;
+			for (int j = x+3; j < 10; j++) {
+				if (k >= 0) {
+					if (currentcol == boardcolours[j*6 + k*60])
+						fruittag[j][k] = true;
+					else
+						break;
+					k--;
+				}
+				else
+					break;
+			}
+		}
+		// checking southbound
+		if (y > 1 &&
+			currentcol == boardcolours[x*6 + (y-1)*60] &&
+			currentcol == boardcolours[x*6 + (y-2)*60]) {
+			printf("tagfruits(): S-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x][y-1] = true;
+			fruittag[x][y-2] = true;
+
+			// if 3+
+			for (int k = y-3; k >= 0; k--) {
+				if (currentcol == boardcolours[x*6 + k*60])
+					fruittag[x][k] = true;
+				else
+					break;
+			}
+		}
+		// checking southwestbound
+		if (y > 1 &&
+			x > 1 &&
+			currentcol == boardcolours[(x-1)*6 + (y-1)*60] &&
+			currentcol == boardcolours[(x-2)*6 + (y-2)*60]) {
+			printf("tagfruits(): SW-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x-1][y-1] = true;
+			fruittag[x-2][y-2] = true;
+
+			// if 3+
+			int k = y-3;
+			for (int j = x-3; j >= 0; j--) {
+				if (k >= 0) {
+					if (currentcol == boardcolours[j*6 + k*60])
+						fruittag[j][k] = true;
+					else
+						break;
+					k--;
+				}
+				else
+					break;
+			}
+		}
+		// checking westbound
+		if (x > 1 &&
+			currentcol == boardcolours[(x-1)*6 + y*60] &&
+			currentcol == boardcolours[(x-2)*6 + y*60]) {
+			printf("tagfruits(): W-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x-1][y] = true;
+			fruittag[x-2][y] = true;
+
+			// if 3+
+			for (int j = x-3; j >= 0; j--) {
+				if (currentcol == boardcolours[j*6 + y*60])
+					fruittag[j][y] = true;
+				else
+					break;
+			}
+		}
+		// checking northwestbound
+		if (y < 18 &&
+			x > 1 &&
+			currentcol == boardcolours[(x-1)*6 + (y+1)*60] &&
+			currentcol == boardcolours[(x-2)*6 + (y+2)*60]) {
+			printf("tagfruits(): NW-bound\n");
+			fruittag[x][y] = true;
+			fruittag[x-1][y+1] = true;
+			fruittag[x-2][y+2] = true;
+
+			// if 3+
+			int k = y+3;
+			for (int j = x-3; j >= 0; j--) {
+				if (k < 20) {
+					if (currentcol == boardcolours[j*6 + k*60])
+						fruittag[j][k] = true;
+					else
+						break;
+					k++;
+				}
+				else
+					break;
+			}
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Deletes the specified block and moves everything above it down
+void deleteblock(int x, int y) {
+	printf("deleteblock(): entered\n");
+	// shift down all blocks above the specified block
+	for (int i = y; i < 20; i++) {
+		// for every row except the top
+		if (i != 19) {
+			board[x][i] = board[x][i+1];
+			// probably redundant, since deletetags() is called from top to bottom
+			fruittag[x][i] = fruittag[x][i+1];
+
+			// replace block with colours of block above
+			for (int j = 0; j < 6; j++)
+				boardcolours[x*6 + i*60 + j] = boardcolours[x*6 + (i+1)*60 + j];
+		}
+		// for top row
+		else {
+			board[x][i] = false;
+			fruittag[x][i] = false;
+
+			// replace top block with black
+			for (int j = 0; j < 6; j++)
+				boardcolours[x*6 + i*60 + j] = black;
+		}
+	}
+
+	// refresh the colours in the buffer
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec4)*1200, boardcolours);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Remove the tagged fruits
+void deletetags() {
+	printf("deletetags(): entered\n");
+	for (int x = 9; x >= 0; x--) {
+		for (int y = 19; y >= 0; y--) {
+			if (fruittag[x][y])
+				deleteblock(x,y);
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 // Rotates the current tile, if there is room
 void rotate()
 {      
@@ -677,7 +974,10 @@ void timer(int value) {
 		settile();
 
 		// if no partial lock out, check for completed rows, then create a new tile
-		if (!endgame) {
+		if (!endgame) {	
+			// tag fruits for deletion after checkfullrow()
+			tagfruits();
+
 			// record which rows to check
 			bool checkrow[4] = {false, false, false, false};
 			for (int i = 0; i < 4; i++) {
@@ -695,6 +995,7 @@ void timer(int value) {
 				if (checkrow[i])
 					checkfullrow(tilepos[1] + 1 - i);
 			}
+			deletetags();
 
 			newtile();
 		}
