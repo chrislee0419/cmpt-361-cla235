@@ -314,9 +314,14 @@ bool chooseorientation() {
 // greys all laid pieces on the board to denote game end
 // used only in newtile()
 void greyboard() {
-	for (int i = 0; i < 1200; i++) {
-		if (boardcolours[i] != black)
-			boardcolours[i] = grey;
+	int x, y;
+	for (int i = 0; i < 200; i++) {
+		x = i % 10;
+		y = i / 10;
+		if (board[x][y]) {
+			for (int j = 0; j < 6; j++)
+				boardcolours[x*6 + y*60 + j] = grey;
+		}
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
@@ -336,7 +341,6 @@ void newtile()
 		// no valid orientation, end the game
 		endgame = true;
 		greyboard();
-		return;
 	}
 
 	updatetile(); 
@@ -345,7 +349,10 @@ void newtile()
 	vec4 newcolours[24];
 	vec4 blockcolour;
 	for (int i = 0; i < 24; i+=6) {
-		blockcolour = allColours[rand() % 5];
+		if (endgame)
+			blockcolour = grey;
+		else
+			blockcolour = allColours[rand() % 5];
 		newcolours[i] = blockcolour;
 		newcolours[i+1] = blockcolour;
 		newcolours[i+2] = blockcolour;
