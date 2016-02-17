@@ -143,45 +143,200 @@ void updatetile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// Returns largest continuous space
+// Should not return 0, as that means the row should be cleared
+int checkrowspaces(int row)
+{
+	int max = 0, count = 0;
+
+	for (int i = 0; i < 10; i++) {
+		if (board[i][row])
+			count = 0;
+		else
+			count++;
+		if (count > max)
+			max = count;
+	}
+
+	return max;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Returns a pointer to a boolean array of size 11
+// The first index is true if there is at least one valid position
+// The next ten indices are true if the orientation will fit
+// for that respective column
+bool* checkorientationfit(int orientation)
+{
+	vec2 rotation[4];
+	vec2 pos = vec2(0,19);
+	int x, y, i, j;
+	bool *result = new bool[11];
+
+	// initialize first value of result to default
+	result[0] = false;
+
+	// copy the orientation you want to test
+	for (i = 0; i < 4; i++)
+		rotation[i] = AllRotations[orientation][i];
+
+	// try to find a valid position for the specific orientation
+	for (i = 0; i < 10; i++) {
+		// test the orientation centred at (i, 19)
+		pos[0] = i;
+		for (j = 0; j < 4; j++) {
+			x = rotation[j][0] + pos[0];
+			y = rotation[j][1] + pos[1];
+
+			// if there is an overlap with an existing block, position is not valid
+			if (y < 20 && board[x][y])
+				break;
+			else if (x < 0 || x > 9)
+				break;
+		}
+
+		// if the orientation can be placed without overlap, update the result array
+		if (j == 4) {
+			result[i+1] = true;
+			result[0] = true;
+		}
+		else
+			result[i+1] = false;
+	}
+
+	return result;
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// Returns true if a new block is chosen, false indicates game end
+bool chooseorientation() {
+	// first, determine how wide the new piece can be
+	int maxwidth = checkrowspaces(19);
+	bool rotations[24];
+
+	// if maxspace = 1, then only vertical "I" blocks can fit
+	// so just test if it can even fit at all
+	if (maxwidth == 1) {
+		bool* check = checkorientationfit(21);
+
+		// if it can't fit anywhere on the board, end the game and return;
+		if ( !check[0] ) {
+			delete[] check;
+			return false;
+		}
+
+		// find a valid position
+		int pos = rand() % 10;
+		while ( !check[pos + 1] )
+			pos = rand() % 10;
+
+		// set the position
+		tilepos[0] = pos;
+		tilepos[1] = 19;
+
+		// copy orientation to current tile
+		for (int i = 0; i < 4; i++)
+			tile[i] = AllRotations[21][i];
+
+		delete[] check;
+		return true;
+	}
+
+	// initializing rotations
+	for (int i = 0; i < 24; i++)
+		rotations[24] = true;
+
+	// eliminate orientations that are too wide
+	if (maxwidth < 4) {
+		rotations[20] = false;
+		rotations[22] = false;
+	}
+	if (maxwidth < 3) {
+		for (int i = 0; i < 10; i++)
+			rotations[2*i] = false;
+	}
+	// if both these if statements are triggered, maxwidth should be 2
+	// (maxwidth = 1 was dealt with earlier)
+
+	int pos, orientation, i;
+	bool *check;
+
+	while (true) {
+		// choose a random orientation as the candidate new piece
+		orientation = rand() % 24;
+		// if the orientation chosen cannot fit, continue
+		if ( !rotations[orientation] )
+			continue;
+
+		check = checkorientationfit(orientation);
+		// if the candidate piece cannot fit, flag and continue
+		if ( !check[0] ) {
+			rotations[orientation] = false;
+			delete[] check;
+
+			// check if there are anymore valid orientations
+			// if not, return with false;
+			for (i = 0; i < 24; i++) {
+				// valid rotation found
+				if ( rotations[i] )
+					break;
+			}
+			// no valid orientations
+			if (i == 24)
+				return false;
+
+		}
+		// otherwise, if it does fit, find a valid position
+		else {
+			pos = rand() % 10;
+			while ( !check[pos + 1] )
+				pos = rand() % 10;
+
+			tilepos[0] = pos;
+			tilepos[1] = 19;
+
+			// copy orientation to current tile
+			for (i = 0; i < 4; i++)
+				tile[i] = AllRotations[orientation][i];
+
+			delete[] check;
+			return true;
+		}
+	}
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// greys all laid pieces on the board to denote game end
+// used only in newtile()
+void greyboard() {
+	for (int i = 0; i < 1200; i++) {
+		if (boardcolours[i] != black)
+			boardcolours[i] = grey;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec4)*1200, boardcolours);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
-	srand(time(NULL));		// seed the rand() function
 
-	int orientation = rand() % 24;
-	int pos = -1;
-	bool overlap;
-
-	// Update the geometry VBO of current tile
-	for (int i = 0; i < 4; i++)
-		tile[i] = AllRotations[orientation][i];
-
-	// randomize starting position
-	while (pos < 0) {
-		pos = rand() % 10;
-		tilepos = vec2(pos , 19); // Put the tile at the top of the board
-
-		overlap = false;
-
-		// check if pos causes any new tile to go over borders or existing blocks
-		for (int i = 0; i < 4; i++) {
-			int x = tilepos[0] + tile[i][0];
-			int y = tilepos[1] + tile[i][1];
-
-			// if a block is out of bounds
-			if (x < 0 || x > 9) {
-				pos = -1;
-				break;
-			}
-			// if a block overlaps with an existing block, record overlap
-			else if (y < 20 && board[x][y]) {
-				overlap = true;
-			}
-			// tile[i] is within bounds
-		}
-		// current block is within bounds, but overlaps with an existing block
-		if (pos > -1 && overlap)
-			endgame = true;
+	if ( !chooseorientation() ) {
+		// no valid orientation, end the game
+		endgame = true;
+		greyboard();
+		return;
 	}
 
 	updatetile(); 
@@ -190,10 +345,7 @@ void newtile()
 	vec4 newcolours[24];
 	vec4 blockcolour;
 	for (int i = 0; i < 24; i+=6) {
-		if (endgame)
-			blockcolour = grey;
-		else
-			blockcolour = allColours[rand() % 5];
+		blockcolour = allColours[rand() % 5];
 		newcolours[i] = blockcolour;
 		newcolours[i+1] = blockcolour;
 		newcolours[i+2] = blockcolour;
@@ -347,6 +499,8 @@ void init()
 	// set to default
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
+
+	srand(time(NULL));		// seed the rand() function
 }
 
 //-------------------------------------------------------------------------------------------------------------------
