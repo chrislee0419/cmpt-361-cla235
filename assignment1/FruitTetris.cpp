@@ -658,14 +658,18 @@ bool colourcheck(vec4 colour, int x, int y) {
 
 // Tag consecutive fruits for deletion after checking rows
 void tagfruits() {
-	printf("tagfruits(): entered\n");
 	vec4 currentcol;
 	int x, y;
 	bool left, right, up, down;
 
-	for (int i = 0; i < 4; i++) {
-		x = tile[i][0] + tilepos[0];
-		y = tile[i][1] + tilepos[1];
+	for (int i = 0; i < 200; i++) {
+		x = i % 10;
+		y = i / 10;
+
+		// checks if the current block is on the board
+		if ( !board[i%10][i/10] )
+			continue;
+		
 		currentcol = boardcolours[x*6 + y*60];
 
 		// check if near edges
@@ -679,17 +683,15 @@ void tagfruits() {
 		// corner to corner checks
 		if ( !(up || down || left || right) ) {
 			// NW to SE
-			if (currentcol == boardcolours[(x-1)*6 + (y+1)*60] &&
-				currentcol == boardcolours[(x+1)*6 + (y-1)*60]) {
-				printf("tagfruits(): NW to SE\n");
+			if (colourcheck(currentcol, x-1, y+1) &&
+				colourcheck(currentcol, x+1, y-1)) {
 				fruittag[x][y] = true;
 				fruittag[x-1][y+1] = true;
 				fruittag[x+1][y-1] = true;
 			}
 			// SW to NE
-			if (currentcol == boardcolours[(x-1)*6 + (y-1)*60] &&
-				currentcol == boardcolours[(x+1)*6 + (y+1)*60]) {
-				printf("tagfruits(): SW to NE\n");
+			if (colourcheck(currentcol, x-1, y-1) &&
+				colourcheck(currentcol, x+1, y+1)) {
 				fruittag[x][y] = true;
 				fruittag[x-1][y-1] = true;
 				fruittag[x+1][y+1] = true;
@@ -697,18 +699,16 @@ void tagfruits() {
 		}
 		// W to E check
 		if (	!(left || right)  &&
-				currentcol == boardcolours[(x-1)*6 + y*60] &&
-				currentcol == boardcolours[(x+1)*6 + y*60]) {
-			printf("tagfruits(): W to E\n");
+				colourcheck(currentcol, x-1, y) &&
+				colourcheck(currentcol, x+1, y)) {
 			fruittag[x][y] = true;
 			fruittag[x-1][y] = true;
 			fruittag[x+1][y] = true;
 		}
 		// N to S check
 		if (	!(up || down)  &&
-				currentcol == boardcolours[x*6 + (y-1)*60] &&
-				currentcol == boardcolours[x*6 + (y+1)*60]) {
-			printf("tagfruits(): N to S\n");
+				colourcheck(currentcol, x, y-1) &&
+				colourcheck(currentcol, x, y+1)) {
 			fruittag[x][y] = true;
 			fruittag[x][y-1] = true;
 			fruittag[x][y+1] = true;
@@ -717,16 +717,15 @@ void tagfruits() {
 		// check for 3+ where the current tile is the end point
 		// checking northbound
 		if (y < 18 &&
-			currentcol == boardcolours[x*6 + (y+1)*60] &&
-			currentcol == boardcolours[x*6 + (y+2)*60]) {
-			printf("tagfruits(): N-bound\n");
+			colourcheck(currentcol, x, y+1) &&
+			colourcheck(currentcol, x, y+2)) {
 			fruittag[x][y] = true;
 			fruittag[x][y+1] = true;
 			fruittag[x][y+2] = true;
 
 			// if 3+
 			for (int k = y+3; k < 20; k++) {
-				if (currentcol == boardcolours[x*6 + k*60])
+				if (colourcheck(currentcol, x, k))
 					fruittag[x][k] = true;
 				else
 					break;
@@ -735,9 +734,8 @@ void tagfruits() {
 		// checking northeastbound
 		if (y < 18 &&
 			x < 8 &&
-			currentcol == boardcolours[(x+1)*6 + (y+1)*60] &&
-			currentcol == boardcolours[(x+2)*6 + (y+2)*60]) {
-			printf("tagfruits(): NE-bound\n");
+			colourcheck(currentcol, x+1, y+1) &&
+			colourcheck(currentcol, x+2, y+2)) {
 			fruittag[x][y] = true;
 			fruittag[x+1][y+1] = true;
 			fruittag[x+2][y+2] = true;
@@ -746,7 +744,7 @@ void tagfruits() {
 			int k = y+3;
 			for (int j = x+3; j < 10; j++) {
 				if (k < 20) {
-					if (currentcol == boardcolours[j*6 + k*60])
+					if (colourcheck(currentcol, j, k))
 						fruittag[j][k] = true;
 					else
 						break;
@@ -758,16 +756,15 @@ void tagfruits() {
 		}
 		// checking eastbound
 		if (x < 8 &&
-			currentcol == boardcolours[(x+1)*6 + y*60] &&
-			currentcol == boardcolours[(x+2)*6 + y*60]) {
-			printf("tagfruits(): E-bound\n");
+			colourcheck(currentcol, x+1, y) &&
+			colourcheck(currentcol, x+2, y)) {
 			fruittag[x][y] = true;
 			fruittag[x+1][y] = true;
 			fruittag[x+2][y] = true;
 
 			// if 3+
 			for (int j = x+3; j < 10; j++) {
-				if (currentcol == boardcolours[j*6 + y*60])
+				if (colourcheck(currentcol, j, y))
 					fruittag[j][y] = true;
 				else
 					break;
@@ -776,9 +773,8 @@ void tagfruits() {
 		// checking southeastbound
 		if (y > 1 &&
 			x < 8 &&
-			currentcol == boardcolours[(x+1)*6 + (y-1)*60] &&
-			currentcol == boardcolours[(x+2)*6 + (y-2)*60]) {
-			printf("tagfruits(): SE-bound\n");
+			colourcheck(currentcol, x+1, y-1) &&
+			colourcheck(currentcol, x+2, y-2)) {
 			fruittag[x][y] = true;
 			fruittag[x+1][y-1] = true;
 			fruittag[x+2][y-2] = true;
@@ -787,7 +783,7 @@ void tagfruits() {
 			int k = y-3;
 			for (int j = x+3; j < 10; j++) {
 				if (k >= 0) {
-					if (currentcol == boardcolours[j*6 + k*60])
+					if (colourcheck(currentcol, j, k))
 						fruittag[j][k] = true;
 					else
 						break;
@@ -799,16 +795,15 @@ void tagfruits() {
 		}
 		// checking southbound
 		if (y > 1 &&
-			currentcol == boardcolours[x*6 + (y-1)*60] &&
-			currentcol == boardcolours[x*6 + (y-2)*60]) {
-			printf("tagfruits(): S-bound\n");
+			colourcheck(currentcol, x, y-1) &&
+			colourcheck(currentcol, x, y-2)) {
 			fruittag[x][y] = true;
 			fruittag[x][y-1] = true;
 			fruittag[x][y-2] = true;
 
 			// if 3+
 			for (int k = y-3; k >= 0; k--) {
-				if (currentcol == boardcolours[x*6 + k*60])
+				if (colourcheck(currentcol, x, k))
 					fruittag[x][k] = true;
 				else
 					break;
@@ -817,9 +812,8 @@ void tagfruits() {
 		// checking southwestbound
 		if (y > 1 &&
 			x > 1 &&
-			currentcol == boardcolours[(x-1)*6 + (y-1)*60] &&
-			currentcol == boardcolours[(x-2)*6 + (y-2)*60]) {
-			printf("tagfruits(): SW-bound\n");
+			colourcheck(currentcol, x-1, y-1) &&
+			colourcheck(currentcol, x-2, y-2)) {
 			fruittag[x][y] = true;
 			fruittag[x-1][y-1] = true;
 			fruittag[x-2][y-2] = true;
@@ -828,7 +822,7 @@ void tagfruits() {
 			int k = y-3;
 			for (int j = x-3; j >= 0; j--) {
 				if (k >= 0) {
-					if (currentcol == boardcolours[j*6 + k*60])
+					if (colourcheck(currentcol, j, k))
 						fruittag[j][k] = true;
 					else
 						break;
@@ -840,16 +834,15 @@ void tagfruits() {
 		}
 		// checking westbound
 		if (x > 1 &&
-			currentcol == boardcolours[(x-1)*6 + y*60] &&
-			currentcol == boardcolours[(x-2)*6 + y*60]) {
-			printf("tagfruits(): W-bound\n");
+			colourcheck(currentcol, x-1, y) &&
+			colourcheck(currentcol, x-2, y)) {
 			fruittag[x][y] = true;
 			fruittag[x-1][y] = true;
 			fruittag[x-2][y] = true;
 
 			// if 3+
 			for (int j = x-3; j >= 0; j--) {
-				if (currentcol == boardcolours[j*6 + y*60])
+				if (colourcheck(currentcol, j, y))
 					fruittag[j][y] = true;
 				else
 					break;
@@ -858,9 +851,8 @@ void tagfruits() {
 		// checking northwestbound
 		if (y < 18 &&
 			x > 1 &&
-			currentcol == boardcolours[(x-1)*6 + (y+1)*60] &&
-			currentcol == boardcolours[(x-2)*6 + (y+2)*60]) {
-			printf("tagfruits(): NW-bound\n");
+			colourcheck(currentcol, x-1, y+1) &&
+			colourcheck(currentcol, x-2, y+2)) {
 			fruittag[x][y] = true;
 			fruittag[x-1][y+1] = true;
 			fruittag[x-2][y+2] = true;
@@ -869,7 +861,7 @@ void tagfruits() {
 			int k = y+3;
 			for (int j = x-3; j >= 0; j--) {
 				if (k < 20) {
-					if (currentcol == boardcolours[j*6 + k*60])
+					if (colourcheck(currentcol, j, k))
 						fruittag[j][k] = true;
 					else
 						break;
@@ -886,7 +878,6 @@ void tagfruits() {
 
 // Deletes the specified block and moves everything above it down
 void deleteblock(int x, int y) {
-	printf("deleteblock(): entered\n");
 	// shift down all blocks above the specified block
 	for (int i = y; i < 20; i++) {
 		// for every row except the top
@@ -922,12 +913,21 @@ void deleteblock(int x, int y) {
 
 // Remove the tagged fruits
 void deletetags() {
-	printf("deletetags(): entered\n");
+	bool doublecheck = false;
+
 	for (int x = 9; x >= 0; x--) {
 		for (int y = 19; y >= 0; y--) {
-			if (fruittag[x][y])
+			if (fruittag[x][y]) {
 				deleteblock(x,y);
+				doublecheck = true;
+			}
 		}
+	}
+
+	// checks whether the moved blocks now create more consecutive fruits
+	if (doublecheck) {
+		tagfruits();
+		deletetags();
 	}
 }
 
@@ -995,6 +995,8 @@ void timer(int value) {
 				if (checkrow[i])
 					checkfullrow(tilepos[1] + 1 - i);
 			}
+			// tag fruits again after blocks were moved by checkfullrow()
+			tagfruits();
 			deletetags();
 
 			newtile();
