@@ -90,7 +90,12 @@ bool board[10][20];
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
-vec4 boardcolours[1200];
+vec4 frontcolours[1200];
+vec4 backcolours[1200];
+vec4 leftcolours[120];
+vec4 rightcolours[120];
+vec4 topcolours[60];
+vec4 bottomcolours[60];
 
 // location of vertex attributes in the shader program
 GLuint vPosition;
@@ -101,8 +106,11 @@ GLuint locxsize;
 GLuint locysize;
 
 // VAO and VBO
-GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
-GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+// 0		- grid
+// 1		- current piece
+// 2 to 7 	- board
+GLuint vaoIDs[8]; // One VAO for each object: the grid, the board, the current piece
+GLuint vboIDs[16]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 // trigger to pause game when it ends
 bool endgame;
@@ -373,6 +381,23 @@ void newtile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
+void initCamera() {
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(	0.0, 20.0, 20.0,
+				0.0, 0.0 , 0.0,
+				0.0, -1.0, 1.0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// create 2 triangles (a, c, d) and (a, d, b)
+void quad(vec4 a, vec4 b, vec4 c, vec4 d) {
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 void initGrid()
 {
 	// ***Generate geometry data
@@ -497,6 +522,7 @@ void init()
 	glGenVertexArrays(3, &vaoIDs[0]);
 
 	// Initialize the grid, the board, and the current tile
+	initCamera();
 	initGrid();
 	initBoard();
 	initCurrentTile();
@@ -1110,7 +1136,7 @@ void idle(void)
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLU_DEPTH);
 	glutInitWindowSize(xsize, ysize);
 	glutInitWindowPosition(680, 178); // Center the game window (well, on a 1920x1080 display)
 	glutCreateWindow("Fruit Tetris");
