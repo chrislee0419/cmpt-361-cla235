@@ -105,8 +105,6 @@ GLuint vColor;
 GLuint locxsize;
 GLuint locysize;
 
-GLuint mvp;
-
 // VAO and VBO
 // 0		- grid
 // 1		- current piece
@@ -176,28 +174,18 @@ void updatetile()
 		GLfloat x = tilepos.x + tile[i].x; 
 		GLfloat y = tilepos.y + tile[i].y;
 
-		// Create the 8 corners of the cube - these vertices are using location in pixels
+		// Create the 4 corners of the square - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(x * 1.0, y * 1.0, 0.0, 1); 
-		vec4 p2 = vec4(x * 1.0, 1.0 + (y * 1.0), 0.0, 1);
-		vec4 p3 = vec4(1.0 + (x * 1.0), y * 1.0, 0.0, 1);
-		vec4 p4 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 0.0, 1);
-		vec4 p5 = vec4(x * 1.0, y * 1.0, 1.0, 1); 
-		vec4 p6 = vec4(x * 1.0, 1.0 + (y * 1.0), 1.0, 1);
-		vec4 p7 = vec4(1.0 + (x * 1.0), y * 1.0, 1.0, 1);
-		vec4 p8 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 1.0, 1);
+		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), .4, 1); 
+		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), .4, 1);
+		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), .4, 1);
+		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), .4, 1);
 
 		// Two points are used by two triangles each
-		vec4 newpoints[36] = {
-			p1, p2, p3, p2, p3, p4,
-			p5, p6, p7, p6, p7, p8, 
-			p5, p6, p1, p6, p1, p2, 
-			p3, p4, p7, p4, p7, p8,
-			p2, p6, p4, p6, p4, p8,
-			p5, p1, p7, p1, p7, p3}; 
+		vec4 newpoints[6] = {p1, p2, p3, p2, p3, p4}; 
 
 		// Put new data in the VBO
-		glBufferSubData(GL_ARRAY_BUFFER, i*36*sizeof(vec4), 36*sizeof(vec4), newpoints); 
+		glBufferSubData(GL_ARRAY_BUFFER, i*6*sizeof(vec4), 6*sizeof(vec4), newpoints); 
 	}
 
 	glBindVertexArray(0);
@@ -406,15 +394,19 @@ void newtile()
 	updatetile(); 
 
 	// Update the color VBO of current tile
-	vec4 newcolours[144];
+	vec4 newcolours[24];
 	vec4 blockcolour;
-	for (int i = 0; i < 144; i+=36) {
+	for (int i = 0; i < 24; i+=6) {
 		if (endgame)
 			blockcolour = grey;
 		else
 			blockcolour = allColours[rand() % 5];
-		for (int j = i; j < i+36; j++)
-			newcolours[j] = blockcolour;
+		newcolours[i] = blockcolour;
+		newcolours[i+1] = blockcolour;
+		newcolours[i+2] = blockcolour;
+		newcolours[i+3] = blockcolour;
+		newcolours[i+4] = blockcolour;
+		newcolours[i+5] = blockcolour;
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]); // Bind the VBO containing current tile vertex colours
@@ -429,28 +421,10 @@ void newtile()
 void initCamera() {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
-	// projection matrix
-	mat4 projection = Perspective(45.0, xsize/ysize, 1.0, 50.0);
-
-	// camera/view matrix
 	vec4 eye = vec4(0.0, 20.0, 20.0, 1.0);
 	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
 	vec4 up = vec4(0.0, -1.0, -1.0, 1.0);
-	mat4 view = LookAt(eye, at, up);
-
-	// model matrix
-	mat4 model = mat4(
-		0.0, 0.0, 0.0, -198.0,
-		0.0, 0.0, 0.0, -198.0,
-		0.0, 0.0, 0.0, 0.0,
-		0.0, 0.0, 0.0, 1.0
-	);
-
-	// combine matrices
-	mat4 mvp_mat = projection * view * model;
-
-	glUniformMatrix4fv(mvp, 1, GL_FALSE, mvp_mat);
+	LookAt(eye, at, up);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -458,43 +432,21 @@ void initCamera() {
 void initGrid()
 {
 	// ***Generate geometry data
-	vec4 gridpoints[590];
-	vec4 gridcolours[590]; // One colour per vertex
-
-	// Front Side
+	vec4 gridpoints[64]; // Array containing the 64 points of the 32 total lines to be later put in the VBO
+	vec4 gridcolours[64]; // One colour per vertex
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] = vec4(1.0 * i, 0, 0, 1);
-		gridpoints[2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
+		gridpoints[2*i] = vec4((33.0 + (33.0 * i)), 33.0, 0, 1);
+		gridpoints[2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, 0, 1);
+		
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] = vec4(0, 1.0 * i, 0, 1);
-		gridpoints[22 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
+		gridpoints[22 + 2*i] = vec4(33.0, (33.0 + (33.0 * i)), 0, 1);
+		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), 0, 1);
 	}
-
-	// Back Side
-	// Vertical lines 
-	for (int i = 0; i < 11; i++){
-		gridpoints[64 + 2*i] = vec4(1.0 * i, 0, 0, 1);
-		gridpoints[64 + 2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
-	}
-	// Horizontal lines
-	for (int i = 0; i < 21; i++){
-		gridpoints[86 + 2*i] = vec4(0, 1.0 * i, 0, 1);
-		gridpoints[86 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
-	}
-
-	// Z-lines
-	for (int i = 0; i < 12; i++) {
-		for (int j = 0; i < 22; i++) {
-			gridpoints[128 + 22*i + 2*j] = vec4(1.0 * i, 1.0 * j, 0, 1);
-			gridpoints[128 + 22*i + 2*j + 1] = vec4(1.0 * i, 1.0 * j, 1, 1);
-		}
-	}
-
 	// Make all grid lines white
-	for (int i = 0; i < 590; i++)
+	for (int i = 0; i < 64; i++)
 		gridcolours[i] = white;
 
 
@@ -505,13 +457,13 @@ void initGrid()
 
 	// Grid vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[0]); // Bind the first grid VBO (vertex positions)
-	glBufferData(GL_ARRAY_BUFFER, 590*sizeof(vec4), gridpoints, GL_STATIC_DRAW); // Put the grid points in the VBO
+	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridpoints, GL_STATIC_DRAW); // Put the grid points in the VBO
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(vPosition); // Enable the attribute
 	
 	// Grid vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[1]); // Bind the second grid VBO (vertex colours)
-	glBufferData(GL_ARRAY_BUFFER, 590*sizeof(vec4), gridcolours, GL_STATIC_DRAW); // Put the grid colours in the VBO
+	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridcolours, GL_STATIC_DRAW); // Put the grid colours in the VBO
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor); // Enable the attribute
 }
@@ -540,15 +492,15 @@ void initBoard()
 	for (int i = 0; i < 20; i++){
 		for (int j = 0; j < 10; j++)
 		{		
-			vec4 p1 = vec4(j * 1.0, i * 1.0, 0.0, 1);
-			vec4 p2 = vec4(j * 1.0, 1.0 + (i * 1.0), 0.0, 1);
-			vec4 p3 = vec4(1.0 + (j * 1.0), i * 1.0, 0.0, 1);
-			vec4 p4 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 0.0, 1);
+			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 0.0, 1);
+			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), 0.0, 1);
+			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), 0.0, 1);
+			vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), 0.0, 1);
 
-			vec4 p5 = vec4(j * 1.0, i * 1.0, 1.0, 1);
-			vec4 p6 = vec4(j * 1.0, 1.0 + (i * 1.0), 1.0, 1);
-			vec4 p7 = vec4(1.0 + (j * 1.0), i * 1.0, 1.0, 1);
-			vec4 p8 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 1.0, 1);
+			vec4 p5 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 33.0, 1);
+			vec4 p6 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), 33.0, 1);
+			vec4 p7 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), 33.0, 1);
+			vec4 p8 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), 33.0, 1);
 			
 			// front side points
 			frontboardpoints[6*(10*i + j)    ] = p1;
@@ -679,13 +631,13 @@ void initCurrentTile()
 
 	// Current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, 144*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Current tile vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 144*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
@@ -699,7 +651,6 @@ void init()
 	// Get the location of the attributes (for glVertexAttribPointer() calls)
 	vPosition = glGetAttribLocation(program, "vPosition");
 	vColor = glGetAttribLocation(program, "vColor");
-	mvp = glGetUniformLocation(program, "mvp");
 
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
 	glGenVertexArrays(3, &vaoIDs[0]);
@@ -1224,32 +1175,10 @@ void restart()
 void display()
 {
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	glUniform1i(locxsize, xsize); // x and y sizes are passed to the shader program to maintain shape of the vertices on screen
 	glUniform1i(locysize, ysize);
-
-	// projection matrix
-	mat4 projection = Perspective(45.0, xsize/ysize, 1.0, 50.0);
-
-	// camera/view matrix
-	vec4 eye = vec4(0.0, 20.0, 20.0, 1.0);
-	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, -1.0, -1.0, 1.0);
-	mat4 view = LookAt(eye, at, up);
-
-	// model matrix
-	mat4 model = mat4(
-		0.0, 0.0, 0.0, -198.0,
-		0.0, 0.0, 0.0, -198.0,
-		0.0, 0.0, 0.0, 0.0,
-		0.0, 0.0, 0.0, 1.0
-	);
-
-	// combine matrices
-	mat4 mvp_mat = projection * view * model;
-
-	glUniformMatrix4fv(mvp, 1, GL_FALSE, mvp_mat);
 
 	// Bind the VAO representing the grid cells (to be drawn first)
 	glBindVertexArray(vaoIDs[2]);
@@ -1266,10 +1195,10 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 0, 1200);
 
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the current tile (to be drawn on top of the board)
-	glDrawArrays(GL_TRIANGLES, 0, 144); // Draw the current tile (8 triangles)
+	glDrawArrays(GL_TRIANGLES, 0, 24); // Draw the current tile (8 triangles)
 
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
-	glDrawArrays(GL_LINES, 0, 590); // Draw the grid lines (21+11 = 32 lines)
+	glDrawArrays(GL_LINES, 0, 64); // Draw the grid lines (21+11 = 32 lines)
 
 
 	glutSwapBuffers();
