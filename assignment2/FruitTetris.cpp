@@ -421,9 +421,10 @@ void newtile()
 void initCamera() {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(	0.0, 20.0, 20.0,
-				0.0, 0.0 , 0.0,
-				0.0, -1.0, 1.0);
+	vec4 eye = vec4(0.0, 20.0, 20.0, 1.0);
+	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
+	vec4 up = vec4(0.0, -1.0, -1.0, 1.0);
+	LookAt(eye, at, up);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -480,12 +481,12 @@ void initBoard()
 
 	for (int i = 0; i < 1200; i++) {
 		// Let the empty cells on the board be black
-		frontboardcolours[i] = black;
-		backboardcolours[i] = black;
-		leftboardcolours[i] = black;
-		rightboardcolours[i] = black;
-		topboardcolours[i] = black;
-		bottomboardcolours[i] = black;
+		frontcolours[i] = black;
+		backcolours[i] = black;
+		leftcolours[i] = black;
+		rightcolours[i] = black;
+		topcolours[i] = black;
+		bottomcolours[i] = black;
 	}
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
@@ -597,27 +598,27 @@ void initBoard()
 
 	// Grid cell vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), frontcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), backcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[9]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), leftcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[11]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), rightcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[13]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), topcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[15]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), bottomcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
@@ -702,7 +703,7 @@ void checkfullrow(int row)
 				fruittag[j][i] = fruittag[j][i+1];
 
 				// replace row with colours of row above
-				colourBlock(j, i, boardcolours[j*6 + (i+1)*60]);
+				colourBlock(j, i, frontcolours[j*6 + (i+1)*60]);
 			}
 			// for top row
 			else {
@@ -800,10 +801,10 @@ bool movetile(vec2 direction)
 
 // Compares input colour with board colour at coordinates (x,y)
 bool colourcheck(vec4 colour, int x, int y) {
-	return 	colour[0] == frontboardcolours[x*6 + y*60][0] &&
-			colour[1] == frontboardcolours[x*6 + y*60][1] &&
-			colour[2] == frontboardcolours[x*6 + y*60][2] &&
-			colour[3] == frontboardcolours[x*6 + y*60][3];
+	return 	colour[0] == frontcolours[x*6 + y*60][0] &&
+			colour[1] == frontcolours[x*6 + y*60][1] &&
+			colour[2] == frontcolours[x*6 + y*60][2] &&
+			colour[3] == frontcolours[x*6 + y*60][3];
 
 }
 
@@ -823,7 +824,7 @@ void tagfruits() {
 		if ( !board[i%10][i/10] )
 			continue;
 		
-		currentcol = boardcolours[x*6 + y*60];
+		currentcol = frontcolours[x*6 + y*60];
 
 		// check if near edges
 		left = (x == 0);
@@ -1040,7 +1041,7 @@ void deleteblock(int x, int y) {
 			fruittag[x][i] = fruittag[x][i+1];
 
 			// replace block with colours of block above
-			colourBlock(x, y, frontboardcolours[x*6 + (i+1)*60 + j]);
+			colourBlock(x, y, frontcolours[x*6 + (i+1)*60]);
 		}
 		// for top row
 		else {
@@ -1271,7 +1272,7 @@ void idle(void)
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLU_DEPTH);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(xsize, ysize);
 	glutInitWindowPosition(680, 178); // Center the game window (well, on a 1920x1080 display)
 	glutCreateWindow("Fruit Tetris");
