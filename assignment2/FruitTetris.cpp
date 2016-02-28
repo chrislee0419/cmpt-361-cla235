@@ -188,7 +188,7 @@ void updatetile()
 		vec4 p8 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), 1.0, 1);
 
 		// Two points are used by two triangles each
-		vec4 newpoints[6] = {
+		vec4 newpoints[36] = {
 			p1, p2, p3, p2, p3, p4,
 			p5, p6, p7, p6, p7, p8, 
 			p5, p6, p1, p6, p1, p2, 
@@ -431,21 +431,21 @@ void initCamera() {
 	glLoadIdentity();
 
 	// projection matrix
-	mat4 projection = perspective(45.0, xsize/ysize, 1.0, 100.0);
+	mat4 projection = Perspective(45.0, xsize/ysize, 1.0, 50.0);
 
 	// camera/view matrix
-	vec3 eye = vec3(0.0, 20.0, 20.0, 1.0);
-	vec3 at = vec3(0.0, 0.0, 0.0, 1.0);
-	vec3 up = vec3(0.0, -1.0, -1.0, 1.0);
+	vec4 eye = vec4(0.0, 20.0, 20.0, 1.0);
+	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
+	vec4 up = vec4(0.0, -1.0, -1.0, 1.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
-	mat4 model = {
+	mat4 model = mat4(
 		0.0, 0.0, 0.0, -198.0,
 		0.0, 0.0, 0.0, -198.0,
 		0.0, 0.0, 0.0, 0.0,
 		0.0, 0.0, 0.0, 1.0
-	};
+	);
 
 	// combine matrices
 	mat4 mvp_mat = projection * view * model;
