@@ -699,7 +699,6 @@ void init()
 	// Get the location of the attributes (for glVertexAttribPointer() calls)
 	vPosition = glGetAttribLocation(program, "vPosition");
 	vColor = glGetAttribLocation(program, "vColor");
-	mvp = glGetUniformLocation(program, "mvp");
 
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
 	glGenVertexArrays(3, &vaoIDs[0]);
@@ -713,6 +712,7 @@ void init()
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
 	locysize = glGetUniformLocation(program, "ysize");
+	mvp = glGetUniformLocation(program, "mvp");
 
 	// Game initialization
 	endgame = false;
@@ -722,6 +722,7 @@ void init()
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
 
+	glEnable(GL_DEPTH_TEST);
 	srand(time(NULL));		// seed the rand() function
 }
 
@@ -1230,19 +1231,19 @@ void display()
 	glUniform1i(locysize, ysize);
 
 	// projection matrix
-	mat4 projection = Perspective(45.0, xsize/ysize, 1.0, 50.0);
+	mat4 projection = Perspective(80.0, xsize/ysize, 1.0, 50.0);
 
 	// camera/view matrix
-	vec4 eye = vec4(0.0, 20.0, 20.0, 1.0);
+	vec4 eye = vec4(0.0, 5.0, -10.0, 1.0);
 	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, -1.0, -1.0, 1.0);
+	vec4 up = vec4(0.0, 1.0, 1.0, 1.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
 	mat4 model = mat4(
-		0.0, 0.0, 0.0, -198.0,
-		0.0, 0.0, 0.0, -198.0,
-		0.0, 0.0, 0.0, 0.0,
+		1.0, 0.0, 0.0, -5.0,
+		0.0, 1.0, 0.0, -10.0,
+		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 1.0
 	);
 
