@@ -90,12 +90,7 @@ bool board[10][20];
 //An array containing the colour of each of the 10*20*2*3 vertices that make up the board
 //Initially, all will be set to black. As tiles are placed, sets of 6 vertices (2 triangles; 1 square)
 //will be set to the appropriate colour in this array before updating the corresponding VBO
-vec4 frontcolours[1200];
-vec4 backcolours[1200];
-vec4 leftcolours[1200];
-vec4 rightcolours[1200];
-vec4 topcolours[1200];
-vec4 bottomcolours[1200];
+vec4 boardcolours[7200];
 
 // location of vertex attributes in the shader program
 GLuint vPosition;
@@ -105,15 +100,17 @@ GLuint vColor;
 GLuint locxsize;
 GLuint locysize;
 
+GLuint mvp;
+
 // VAO and VBO
-// 0		- grid
-// 1		- current piece
-// 2 to 7 	- board
-GLuint vaoIDs[8]; // One VAO for each object: the grid, the board, the current piece
+// 0	- grid
+// 1	- current piece
+// 2 	- board
+GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
 // 0 to 1	- grid
 // 2 to 3	- current piece
-// 4 to 15 	- board
-GLuint vboIDs[16]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+// 4 to 5 	- board
+GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 // trigger to pause game when it ends
 bool endgame;
@@ -128,38 +125,16 @@ bool fruittag[10][20];
 // colours all faces of the block at position (x, y)
 void colourBlock(int x, int y, vec4 colour) {
 	for (int i = 0; i < 6; i++) {
-		frontcolours[x*6 + 60*y + i] = colour;
-		backcolours[x*6 + 60*y + i] = colour;
-		leftcolours[x*6 + 60*y + i] = colour;
-		rightcolours[x*6 + 60*y + i] = colour;
-		topcolours[x*6 + 60*y + i] = colour;
-		bottomcolours[x*6 + 60*y + i] = colour;
+		boardcolours[x*6 + 60*y + i] = colour;
+		boardcolours[x*6 + 60*y + i + 1200] = colour;
+		boardcolours[x*6 + 60*y + i + 2400] = colour;
+		boardcolours[x*6 + 60*y + i + 3600] = colour;
+		boardcolours[x*6 + 60*y + i + 4800] = colour;
+		boardcolours[x*6 + 60*y + i + 6000] = colour;
 	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-
-// pushes colour changes to the buffer
-void setColourBlock() {
-	// front colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), frontcolours);
-	// back colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), backcolours);
-	// left colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[9]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), leftcolours);
-	// right colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[11]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), rightcolours);
-	// top colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[13]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), topcolours);
-	// bottom colours
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[15]);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 1200*sizeof(vec4), bottomcolours);
-}
 
 // When the current tile is moved or rotated (or created), update the VBO containing its vertex position data
 void updatetile()
@@ -174,18 +149,28 @@ void updatetile()
 		GLfloat x = tilepos.x + tile[i].x; 
 		GLfloat y = tilepos.y + tile[i].y;
 
-		// Create the 4 corners of the square - these vertices are using location in pixels
+		// Create the 8 corners of the cube - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(33.0 + (x * 33.0), 33.0 + (y * 33.0), .4, 1); 
-		vec4 p2 = vec4(33.0 + (x * 33.0), 66.0 + (y * 33.0), .4, 1);
-		vec4 p3 = vec4(66.0 + (x * 33.0), 33.0 + (y * 33.0), .4, 1);
-		vec4 p4 = vec4(66.0 + (x * 33.0), 66.0 + (y * 33.0), .4, 1);
+		vec4 p1 = vec4(x * 1.0, y * 1.0, 0.0, 1); 
+		vec4 p2 = vec4(x * 1.0, 1.0 + (y * 1.0), 0.0, 1);
+		vec4 p3 = vec4(1.0 + (x * 1.0), y * 1.0, 0.0, 1);
+		vec4 p4 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 0.0, 1);
+		vec4 p5 = vec4(x * 1.0, y * 1.0, 1.0, 1); 
+		vec4 p6 = vec4(x * 1.0, 1.0 + (y * 1.0), 1.0, 1);
+		vec4 p7 = vec4(1.0 + (x * 1.0), y * 1.0, 1.0, 1);
+		vec4 p8 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 1.0, 1);
 
 		// Two points are used by two triangles each
-		vec4 newpoints[6] = {p1, p2, p3, p2, p3, p4}; 
+		vec4 newpoints[36] = {
+			p1, p2, p3, p2, p3, p4,
+			p5, p6, p7, p6, p7, p8, 
+			p5, p6, p1, p6, p1, p2, 
+			p3, p4, p7, p4, p7, p8,
+			p2, p6, p4, p6, p4, p8,
+			p5, p1, p7, p1, p7, p3}; 
 
 		// Put new data in the VBO
-		glBufferSubData(GL_ARRAY_BUFFER, i*6*sizeof(vec4), 6*sizeof(vec4), newpoints); 
+		glBufferSubData(GL_ARRAY_BUFFER, i*36*sizeof(vec4), 36*sizeof(vec4), newpoints); 
 	}
 
 	glBindVertexArray(0);
@@ -373,7 +358,8 @@ void greyboard() {
 		}
 	}
 
-	setColourBlock();
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 7200*sizeof(vec4), boardcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
@@ -394,19 +380,15 @@ void newtile()
 	updatetile(); 
 
 	// Update the color VBO of current tile
-	vec4 newcolours[24];
+	vec4 newcolours[144];
 	vec4 blockcolour;
-	for (int i = 0; i < 24; i+=6) {
+	for (int i = 0; i < 144; i+=36) {
 		if (endgame)
 			blockcolour = grey;
 		else
 			blockcolour = allColours[rand() % 5];
-		newcolours[i] = blockcolour;
-		newcolours[i+1] = blockcolour;
-		newcolours[i+2] = blockcolour;
-		newcolours[i+3] = blockcolour;
-		newcolours[i+4] = blockcolour;
-		newcolours[i+5] = blockcolour;
+		for (int j = i; j < i+36; j++)
+			newcolours[j] = blockcolour;
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]); // Bind the VBO containing current tile vertex colours
@@ -418,35 +400,46 @@ void newtile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-void initCamera() {
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	vec4 eye = vec4(0.0, 20.0, 20.0, 1.0);
-	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, -1.0, -1.0, 1.0);
-	LookAt(eye, at, up);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 void initGrid()
 {
 	// ***Generate geometry data
-	vec4 gridpoints[64]; // Array containing the 64 points of the 32 total lines to be later put in the VBO
-	vec4 gridcolours[64]; // One colour per vertex
+	vec4 gridpoints[590];
+	vec4 gridcolours[590]; // One colour per vertex
+
+	// Front Side
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] = vec4((33.0 + (33.0 * i)), 33.0, 0, 1);
-		gridpoints[2*i + 1] = vec4((33.0 + (33.0 * i)), 693.0, 0, 1);
-		
+		gridpoints[2*i] = vec4(1.0 * i, 0, 0, 1);
+		gridpoints[2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] = vec4(33.0, (33.0 + (33.0 * i)), 0, 1);
-		gridpoints[22 + 2*i + 1] = vec4(363.0, (33.0 + (33.0 * i)), 0, 1);
+		gridpoints[22 + 2*i] = vec4(0, 1.0 * i, 0, 1);
+		gridpoints[22 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
 	}
+
+	// Back Side
+	// Vertical lines 
+	for (int i = 0; i < 11; i++){
+		gridpoints[64 + 2*i] = vec4(1.0 * i, 0, 0, 1);
+		gridpoints[64 + 2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
+	}
+	// Horizontal lines
+	for (int i = 0; i < 21; i++){
+		gridpoints[86 + 2*i] = vec4(0, 1.0 * i, 0, 1);
+		gridpoints[86 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
+	}
+
+	// Z-lines
+	for (int i = 0; i < 12; i++) {
+		for (int j = 0; i < 22; i++) {
+			gridpoints[128 + 22*i + 2*j] = vec4(1.0 * i, 1.0 * j, 0, 1);
+			gridpoints[128 + 22*i + 2*j + 1] = vec4(1.0 * i, 1.0 * j, 1, 1);
+		}
+	}
+
 	// Make all grid lines white
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < 590; i++)
 		gridcolours[i] = white;
 
 
@@ -457,13 +450,13 @@ void initGrid()
 
 	// Grid vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[0]); // Bind the first grid VBO (vertex positions)
-	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridpoints, GL_STATIC_DRAW); // Put the grid points in the VBO
+	glBufferData(GL_ARRAY_BUFFER, 590*sizeof(vec4), gridpoints, GL_STATIC_DRAW); // Put the grid points in the VBO
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0); 
 	glEnableVertexAttribArray(vPosition); // Enable the attribute
 	
 	// Grid vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[1]); // Bind the second grid VBO (vertex colours)
-	glBufferData(GL_ARRAY_BUFFER, 64*sizeof(vec4), gridcolours, GL_STATIC_DRAW); // Put the grid colours in the VBO
+	glBufferData(GL_ARRAY_BUFFER, 590*sizeof(vec4), gridcolours, GL_STATIC_DRAW); // Put the grid colours in the VBO
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor); // Enable the attribute
 }
@@ -472,12 +465,7 @@ void initGrid()
 void initBoard()
 {
 	// *** Generate the geometric data
-	vec4 frontboardpoints[1200];
-	vec4 backboardpoints[1200];
-	vec4 leftboardpoints[1200];
-	vec4 rightboardpoints[1200];
-	vec4 topboardpoints[1200];
-	vec4 bottomboardpoints[1200];
+	vec4 boardpoints[7200];
 
 	for (int i = 0; i < 1200; i++) {
 		// Let the empty cells on the board be black
@@ -492,58 +480,58 @@ void initBoard()
 	for (int i = 0; i < 20; i++){
 		for (int j = 0; j < 10; j++)
 		{		
-			vec4 p1 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 0.0, 1);
-			vec4 p2 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), 0.0, 1);
-			vec4 p3 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), 0.0, 1);
-			vec4 p4 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), 0.0, 1);
+			vec4 p1 = vec4(j * 1.0, i * 1.0, 0.0, 1);
+			vec4 p2 = vec4(j * 1.0, 1.0 + (i * 1.0), 0.0, 1);
+			vec4 p3 = vec4(1.0 + (j * 1.0), i * 1.0, 0.0, 1);
+			vec4 p4 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 0.0, 1);
 
-			vec4 p5 = vec4(33.0 + (j * 33.0), 33.0 + (i * 33.0), 33.0, 1);
-			vec4 p6 = vec4(33.0 + (j * 33.0), 66.0 + (i * 33.0), 33.0, 1);
-			vec4 p7 = vec4(66.0 + (j * 33.0), 33.0 + (i * 33.0), 33.0, 1);
-			vec4 p8 = vec4(66.0 + (j * 33.0), 66.0 + (i * 33.0), 33.0, 1);
+			vec4 p5 = vec4(j * 1.0, i * 1.0, 1.0, 1);
+			vec4 p6 = vec4(j * 1.0, 1.0 + (i * 1.0), 1.0, 1);
+			vec4 p7 = vec4(1.0 + (j * 1.0), i * 1.0, 1.0, 1);
+			vec4 p8 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 1.0, 1);
 			
 			// front side points
-			frontboardpoints[6*(10*i + j)    ] = p1;
-			frontboardpoints[6*(10*i + j) + 1] = p2;
-			frontboardpoints[6*(10*i + j) + 2] = p3;
-			frontboardpoints[6*(10*i + j) + 3] = p2;
-			frontboardpoints[6*(10*i + j) + 4] = p3;
-			frontboardpoints[6*(10*i + j) + 5] = p4;
+			boardpoints[6*(10*i + j)    ] = p1;
+			boardpoints[6*(10*i + j) + 1] = p2;
+			boardpoints[6*(10*i + j) + 2] = p3;
+			boardpoints[6*(10*i + j) + 3] = p2;
+			boardpoints[6*(10*i + j) + 4] = p3;
+			boardpoints[6*(10*i + j) + 5] = p4;
 			// back side points
-			backboardpoints[6*(10*i + j)    ] = p5;
-			backboardpoints[6*(10*i + j) + 1] = p6;
-			backboardpoints[6*(10*i + j) + 2] = p7;
-			backboardpoints[6*(10*i + j) + 3] = p6;
-			backboardpoints[6*(10*i + j) + 4] = p7;
-			backboardpoints[6*(10*i + j) + 5] = p8;
+			boardpoints[6*(10*i + j) + 1200] = p5;
+			boardpoints[6*(10*i + j) + 1201] = p6;
+			boardpoints[6*(10*i + j) + 1202] = p7;
+			boardpoints[6*(10*i + j) + 1203] = p6;
+			boardpoints[6*(10*i + j) + 1204] = p7;
+			boardpoints[6*(10*i + j) + 1205] = p8;
 			// left side points
-			leftboardpoints[6*(10*i + j)    ] = p5;
-			leftboardpoints[6*(10*i + j) + 1] = p6;
-			leftboardpoints[6*(10*i + j) + 2] = p1;
-			leftboardpoints[6*(10*i + j) + 3] = p6;
-			leftboardpoints[6*(10*i + j) + 4] = p1;
-			leftboardpoints[6*(10*i + j) + 5] = p2;
+			boardpoints[6*(10*i + j) + 2400] = p5;
+			boardpoints[6*(10*i + j) + 2401] = p6;
+			boardpoints[6*(10*i + j) + 2402] = p1;
+			boardpoints[6*(10*i + j) + 2403] = p6;
+			boardpoints[6*(10*i + j) + 2404] = p1;
+			boardpoints[6*(10*i + j) + 2405] = p2;
 			// right side points
-			rightboardpoints[6*(10*i + j)    ] = p3;
-			rightboardpoints[6*(10*i + j) + 1] = p4;
-			rightboardpoints[6*(10*i + j) + 2] = p7;
-			rightboardpoints[6*(10*i + j) + 3] = p4;
-			rightboardpoints[6*(10*i + j) + 4] = p7;
-			rightboardpoints[6*(10*i + j) + 5] = p8;
+			boardpoints[6*(10*i + j) + 3600] = p3;
+			boardpoints[6*(10*i + j) + 3601] = p4;
+			boardpoints[6*(10*i + j) + 3602] = p7;
+			boardpoints[6*(10*i + j) + 3603] = p4;
+			boardpoints[6*(10*i + j) + 3604] = p7;
+			boardpoints[6*(10*i + j) + 3605] = p8;
 			// top side points
-			topboardpoints[6*(10*i + j)    ] = p2;
-			topboardpoints[6*(10*i + j) + 1] = p5;
-			topboardpoints[6*(10*i + j) + 2] = p4;
-			topboardpoints[6*(10*i + j) + 3] = p5;
-			topboardpoints[6*(10*i + j) + 4] = p4;
-			topboardpoints[6*(10*i + j) + 5] = p8;
+			boardpoints[6*(10*i + j) + 4800] = p2;
+			boardpoints[6*(10*i + j) + 4801] = p5;
+			boardpoints[6*(10*i + j) + 4802] = p4;
+			boardpoints[6*(10*i + j) + 4803] = p5;
+			boardpoints[6*(10*i + j) + 4804] = p4;
+			boardpoints[6*(10*i + j) + 4805] = p8;
 			// bottom side points
-			bottomboardpoints[6*(10*i + j)    ] = p5;
-			bottomboardpoints[6*(10*i + j) + 1] = p1;
-			bottomboardpoints[6*(10*i + j) + 2] = p7;
-			bottomboardpoints[6*(10*i + j) + 3] = p1;
-			bottomboardpoints[6*(10*i + j) + 4] = p7;
-			bottomboardpoints[6*(10*i + j) + 5] = p3;
+			boardpoints[6*(10*i + j) + 6000] = p5;
+			boardpoints[6*(10*i + j) + 6001] = p1;
+			boardpoints[6*(10*i + j) + 6002] = p7;
+			boardpoints[6*(10*i + j) + 6003] = p1;
+			boardpoints[6*(10*i + j) + 6004] = p7;
+			boardpoints[6*(10*i + j) + 6005] = p3;
 		}
 	}
 
@@ -559,66 +547,16 @@ void initBoard()
 	// *** set up buffer objects
 	glBindVertexArray(vaoIDs[2]);
 	glGenBuffers(2, &vboIDs[4]);
-	glBindVertexArray(vaoIDs[3]);
-	glGenBuffers(2, &vboIDs[6]);
-	glBindVertexArray(vaoIDs[4]);
-	glGenBuffers(2, &vboIDs[8]);
-	glBindVertexArray(vaoIDs[5]);
-	glGenBuffers(2, &vboIDs[10]);
-	glBindVertexArray(vaoIDs[6]);
-	glGenBuffers(2, &vboIDs[12]);
-	glBindVertexArray(vaoIDs[7]);
-	glGenBuffers(2, &vboIDs[14]);
 
 	// Grid cell vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[4]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), frontboardpoints, GL_STATIC_DRAW);
-	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vPosition);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), backboardpoints, GL_STATIC_DRAW);
-	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vPosition);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[8]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), leftboardpoints, GL_STATIC_DRAW);
-	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vPosition);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[10]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), rightboardpoints, GL_STATIC_DRAW);
-	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vPosition);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[12]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), topboardpoints, GL_STATIC_DRAW);
-	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vPosition);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[14]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), bottomboardpoints, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 7200*sizeof(vec4), boardpoints, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Grid cell vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), frontcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vColor);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), backcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vColor);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[9]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), leftcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vColor);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[11]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), rightcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vColor);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[13]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), topcolours, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(vColor);
-	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[15]);
-	glBufferData(GL_ARRAY_BUFFER, 1200*sizeof(vec4), bottomcolours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 7200*sizeof(vec4), boardcolours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
@@ -631,13 +569,13 @@ void initCurrentTile()
 
 	// Current tile vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[2]);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 144*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	// Current tile vertex colours
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
-	glBufferData(GL_ARRAY_BUFFER, 24*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 144*sizeof(vec4), NULL, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
 }
@@ -664,6 +602,7 @@ void init()
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
 	locysize = glGetUniformLocation(program, "ysize");
+	mvp = glGetUniformLocation(program, "mvp");
 
 	// Game initialization
 	endgame = false;
@@ -673,6 +612,7 @@ void init()
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
 
+	glEnable(GL_DEPTH_TEST);
 	srand(time(NULL));		// seed the rand() function
 }
 
@@ -717,7 +657,8 @@ void checkfullrow(int row)
 	}
 
 	// refresh the colours in the buffer
-	setColourBlock();
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 7200*sizeof(vec4), boardcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
@@ -764,7 +705,8 @@ void settile()
 		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(greycolour), greycolour);
 	}
 
-	setColourBlock();
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 7200*sizeof(vec4), boardcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
@@ -1054,7 +996,8 @@ void deleteblock(int x, int y) {
 	}
 
 	// refresh the colours in the buffer
-	setColourBlock();
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[5]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 7200*sizeof(vec4), boardcolours);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
@@ -1175,30 +1118,42 @@ void restart()
 void display()
 {
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUniform1i(locxsize, xsize); // x and y sizes are passed to the shader program to maintain shape of the vertices on screen
 	glUniform1i(locysize, ysize);
 
+	// projection matrix
+	mat4 projection = Perspective(80.0, xsize/ysize, 1.0, 50.0);
+
+	// camera/view matrix
+	vec4 eye = vec4(0.0, 5.0, -10.0, 1.0);
+	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
+	vec4 up = vec4(0.0, 1.0, 1.0, 1.0);
+	mat4 view = LookAt(eye, at, up);
+
+	// model matrix
+	mat4 model = mat4(
+		1.0, 0.0, 0.0, -5.0,
+		0.0, 1.0, 0.0, -10.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0
+	);
+
+	// combine matrices
+	mat4 mvp_mat = projection * view * model;
+
+	glUniformMatrix4fv(mvp, 1, GL_FALSE, mvp_mat);
+
 	// Bind the VAO representing the grid cells (to be drawn first)
 	glBindVertexArray(vaoIDs[2]);
-	glDrawArrays(GL_TRIANGLES, 0, 1200);
-	glBindVertexArray(vaoIDs[3]);
-	glDrawArrays(GL_TRIANGLES, 0, 1200);
-	glBindVertexArray(vaoIDs[4]);
-	glDrawArrays(GL_TRIANGLES, 0, 1200);
-	glBindVertexArray(vaoIDs[5]);
-	glDrawArrays(GL_TRIANGLES, 0, 1200);
-	glBindVertexArray(vaoIDs[6]);
-	glDrawArrays(GL_TRIANGLES, 0, 1200);
-	glBindVertexArray(vaoIDs[7]);
-	glDrawArrays(GL_TRIANGLES, 0, 1200);
+	glDrawArrays(GL_TRIANGLES, 0, 7200);
 
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the current tile (to be drawn on top of the board)
-	glDrawArrays(GL_TRIANGLES, 0, 24); // Draw the current tile (8 triangles)
+	glDrawArrays(GL_TRIANGLES, 0, 144); // Draw the current tile (8 triangles)
 
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
-	glDrawArrays(GL_LINES, 0, 64); // Draw the grid lines (21+11 = 32 lines)
+	glDrawArrays(GL_LINES, 0, 590); // Draw the grid lines (21+11 = 32 lines)
 
 
 	glutSwapBuffers();
