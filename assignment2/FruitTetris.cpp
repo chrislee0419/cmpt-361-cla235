@@ -538,9 +538,9 @@ void initBoard()
 		}
 	}
 
-	mat4 m = mat4(1, 0, 0, -5, 0, 1, 0, -10, 0, 0, 1, 0, 0, 0, 0, 1);
+	mat4 m = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -5, -10, 0, 1);
 	mat4 v = LookAt(vec4(0, 10, -10, 1), vec4(0, 0, 0, 1), vec4(0, 1, 1, 0));
-	mat4 p = Perspective(45, xsize/ysize, 1.0, 50.0);
+	mat4 p = Perspective(45, (float)xsize/(float)ysize, 1.0, 50.0);
 	mat4 mvp_mat = p * v * m;
 	for (int i = 0; i < 7200; i+=36) {
 		printf("orig [%d]: x=%f, y=%f, z=%f\n",
@@ -1160,12 +1160,12 @@ void display()
 	glUniform1i(locysize, ysize);
 
 	// projection matrix
-	mat4 projection = Perspective(80.0, xsize/ysize, 0.5, 200.0);
+	mat4 projection = Perspective(80.0, (float)xsize/(float)ysize, 0.5, 200.0);
 
 	// camera/view matrix
-	vec4 eye = vec4(5.0, 20.0, 0.0, 1.0);
-	vec4 at = vec4(5.0, 10.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, 1.0, 0.0, 1.0);
+	vec4 eye = vec4(0.0, 10.0, -20.0, 1.0);
+	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
+	vec4 up = vec4(0.0, 1.0, 0.0, 0.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
