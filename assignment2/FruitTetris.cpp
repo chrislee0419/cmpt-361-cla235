@@ -469,7 +469,7 @@ void initBoard()
 
 	for (int i = 0; i < 7200; i++) {
 		// Let the empty cells on the board be black
-		boardcolours[i] = black;
+		boardcolours[i] = white;
 	}
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
@@ -1118,18 +1118,18 @@ void display()
 	glUniform1i(locysize, ysize);
 
 	// projection matrix
-	mat4 projection = Perspective(80.0, xsize/ysize, 1.0, 50.0);
+	mat4 projection = Perspective(80.0, xsize/ysize, 0.5, 200.0);
 
 	// camera/view matrix
-	vec4 eye = vec4(0.0, 5.0, -10.0, 1.0);
-	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, 1.0, 1.0, 1.0);
+	vec4 eye = vec4(5.0, 20.0, 0.0, 1.0);
+	vec4 at = vec4(5.0, 10.0, 0.0, 1.0);
+	vec4 up = vec4(0.0, 1.0, 0.0, 1.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
 	mat4 model = mat4(
-		1.0, 0.0, 0.0, -5.0,
-		0.0, 1.0, 0.0, -10.0,
+		1.0, 0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 1.0
 	);
