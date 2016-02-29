@@ -467,14 +467,9 @@ void initBoard()
 	// *** Generate the geometric data
 	vec4 boardpoints[7200];
 
-	for (int i = 0; i < 1200; i++) {
+	for (int i = 0; i < 7200; i++) {
 		// Let the empty cells on the board be black
-		frontcolours[i] = black;
-		backcolours[i] = black;
-		leftcolours[i] = black;
-		rightcolours[i] = black;
-		topcolours[i] = black;
-		bottomcolours[i] = black;
+		boardcolours[i] = black;
 	}
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
@@ -593,8 +588,7 @@ void init()
 	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
 	glGenVertexArrays(3, &vaoIDs[0]);
 
-	// Initialize the camera, grid, board, and current tile
-	initCamera();
+	// Initialize the grid, board, and current tile
 	initGrid();
 	initBoard();
 	initCurrentTile();
@@ -643,7 +637,7 @@ void checkfullrow(int row)
 				fruittag[j][i] = fruittag[j][i+1];
 
 				// replace row with colours of row above
-				colourBlock(j, i, frontcolours[j*6 + (i+1)*60]);
+				colourBlock(j, i, boardcolours[j*6 + (i+1)*60]);
 			}
 			// for top row
 			else {
@@ -743,10 +737,10 @@ bool movetile(vec2 direction)
 
 // Compares input colour with board colour at coordinates (x,y)
 bool colourcheck(vec4 colour, int x, int y) {
-	return 	colour[0] == frontcolours[x*6 + y*60][0] &&
-			colour[1] == frontcolours[x*6 + y*60][1] &&
-			colour[2] == frontcolours[x*6 + y*60][2] &&
-			colour[3] == frontcolours[x*6 + y*60][3];
+	return 	colour[0] == boardcolours[x*6 + y*60][0] &&
+			colour[1] == boardcolours[x*6 + y*60][1] &&
+			colour[2] == boardcolours[x*6 + y*60][2] &&
+			colour[3] == boardcolours[x*6 + y*60][3];
 
 }
 
@@ -766,7 +760,7 @@ void tagfruits() {
 		if ( !board[i%10][i/10] )
 			continue;
 		
-		currentcol = frontcolours[x*6 + y*60];
+		currentcol = boardcolours[x*6 + y*60];
 
 		// check if near edges
 		left = (x == 0);
@@ -983,7 +977,7 @@ void deleteblock(int x, int y) {
 			fruittag[x][i] = fruittag[x][i+1];
 
 			// replace block with colours of block above
-			colourBlock(x, y, frontcolours[x*6 + (i+1)*60]);
+			colourBlock(x, y, boardcolours[x*6 + (i+1)*60]);
 		}
 		// for top row
 		else {
