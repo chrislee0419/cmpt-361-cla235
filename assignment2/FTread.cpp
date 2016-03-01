@@ -18,9 +18,9 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 #include <cstdlib>
 #include <iostream>
 #include <ctime>
+#include <cmath>
 
 using namespace std;
-
 
 // xsize and ysize represent the window size - updated if window is reshaped to prevent stretching of the game
 int xsize = 400; 
@@ -77,9 +77,17 @@ vec4 red 	= 	vec4(1.0, 0.1, 0.1, 1.0);
 vec4 yellow = 	vec4(0.8, 0.8, 0.0, 1.0);
 vec4 green 	= 	vec4(0.1, 0.8, 0.1, 1.0);
 vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0); 
+
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
 vec4 grey 	= 	vec4(0.5, 0.5, 0.5, 1.0);
+
+vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
+vec4 translucent = vec4(1.0, 1.0, 1.0, 0.2);
+
+vec4 blue1 = vec4(0.1, 0.1, 1.0, 1.0);
+vec4 blue2 = vec4(0.2, 0.2, 1.0, 1.0);
+vec4 blue3 = vec4(0.3, 0.3, 1.0, 1.0);
 
 // colours array
 vec4 allColours[5] = {purple, red, yellow, green, orange};
@@ -106,17 +114,27 @@ GLuint mvp;
 // 0	- grid
 // 1	- current piece
 // 2 	- board
-GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
+// 4 	- robot arm
+GLuint vaoIDs[4]; // One VAO for each object: the grid, the board, the current piece
 // 0 to 1	- grid
 // 2 to 3	- current piece
 // 4 to 5 	- board
-GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+// 6 to 7 	- robot arm
+GLuint vboIDs[8]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 // trigger to pause game when it ends
 bool endgame;
 
 // used to tag fruits for deletion
 bool fruittag[10][20];
+
+float camera_angle = 0;
+float camera_height = 20.0;
+
+vec4 robot_arm[108];
+
+float arm_theta = 30;
+float arm_phi = 90;
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -151,23 +169,23 @@ void updatetile()
 
 		// Create the 8 corners of the cube - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(x * 1.0, y * 1.0, 0.0, 1); 
-		vec4 p2 = vec4(x * 1.0, 1.0 + (y * 1.0), 0.0, 1);
-		vec4 p3 = vec4(1.0 + (x * 1.0), y * 1.0, 0.0, 1);
-		vec4 p4 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 0.0, 1);
-		vec4 p5 = vec4(x * 1.0, y * 1.0, 1.0, 1); 
-		vec4 p6 = vec4(x * 1.0, 1.0 + (y * 1.0), 1.0, 1);
-		vec4 p7 = vec4(1.0 + (x * 1.0), y * 1.0, 1.0, 1);
-		vec4 p8 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 1.0, 1);
+		vec4 p1 = vec4(x, y, 1.0, 1); 
+		vec4 p2 = vec4(x, y + 1.0, 1.0, 1);
+		vec4 p3 = vec4(x + 1.0, y, 1.0, 1);
+		vec4 p4 = vec4(x + 1.0, y + 1.0, 1.0, 1);
+		vec4 p5 = vec4(x, y, 0.0, 1); 
+		vec4 p6 = vec4(x, y + 1.0, 0.0, 1);
+		vec4 p7 = vec4(x + 1.0, y, 0.0, 1);
+		vec4 p8 = vec4(x + 1.0, y + 1.0, 0.0, 1);
 
 		// Two points are used by two triangles each
 		vec4 newpoints[36] = {
-			p1, p2, p3, p2, p3, p4,
-			p5, p6, p7, p6, p7, p8, 
-			p5, p6, p1, p6, p1, p2, 
-			p3, p4, p7, p4, p7, p8,
-			p2, p6, p4, p6, p4, p8,
-			p5, p1, p7, p1, p7, p3}; 
+			p2, p1, p3, p2, p3, p4,
+			p5, p6, p7, p6, p8, p7, 
+			p2, p6, p5, p2, p5, p1, 
+			p4, p3, p7, p4, p7, p8,
+			p6, p2, p4, p6, p4, p8,
+			p1, p5, p7, p1, p7, p3}; 
 
 		// Put new data in the VBO
 		glBufferSubData(GL_ARRAY_BUFFER, i*36*sizeof(vec4), 36*sizeof(vec4), newpoints); 
@@ -409,38 +427,38 @@ void initGrid()
 	// Front Side
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] = vec4(1.0 * i, 0, 0, 1);
-		gridpoints[2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
+		gridpoints[2*i] = vec4(i, 0, 1, 1);
+		gridpoints[2*i + 1] = vec4(i, 20.0, 1, 1);
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] = vec4(0, 1.0 * i, 0, 1);
-		gridpoints[22 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
+		gridpoints[22 + 2*i] = vec4(0, i, 1, 1);
+		gridpoints[22 + 2*i + 1] = vec4(10.0, i, 1, 1);
 	}
 
 	// Back Side
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[64 + 2*i] = vec4(1.0 * i, 0, 0, 1);
-		gridpoints[64 + 2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
+		gridpoints[64 + 2*i] = vec4(i, 0, 0, 1);
+		gridpoints[64 + 2*i + 1] = vec4(i, 20.0, 0, 1);
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[86 + 2*i] = vec4(0, 1.0 * i, 0, 1);
-		gridpoints[86 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
+		gridpoints[86 + 2*i] = vec4(0, i, 0, 1);
+		gridpoints[86 + 2*i + 1] = vec4(10.0, i, 0, 1);
 	}
 
 	// Z-lines
-	for (int i = 0; i < 12; i++) {
-		for (int j = 0; i < 22; i++) {
-			gridpoints[128 + 22*i + 2*j] = vec4(1.0 * i, 1.0 * j, 0, 1);
-			gridpoints[128 + 22*i + 2*j + 1] = vec4(1.0 * i, 1.0 * j, 1, 1);
+	for (int i = 0; i < 11; i++) {
+		for (int j = 0; j < 21; j++) {
+			gridpoints[128 + 42*i + 2*j] = vec4(i, j, 1, 1);
+			gridpoints[128 + 42*i + 2*j + 1] = vec4(i, j, 0, 1);
 		}
 	}
 
 	// Make all grid lines white
 	for (int i = 0; i < 590; i++)
-		gridcolours[i] = white;
+		gridcolours[i] = translucent;
 
 
 	// *** set up buffer objects
@@ -468,26 +486,26 @@ void initBoard()
 	vec4 boardpoints[7200];
 
 	for (int i = 0; i < 7200; i++) {
-		// Let the empty cells on the board be black
-		boardcolours[i] = white;
+		// Let the empty cells on the board be transparent
+		boardcolours[i] = transparent;
 	}
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
 		for (int j = 0; j < 10; j++)
 		{		
-			vec4 p1 = vec4(j * 1.0, i * 1.0, 0.0, 1);
-			vec4 p2 = vec4(j * 1.0, 1.0 + (i * 1.0), 0.0, 1);
-			vec4 p3 = vec4(1.0 + (j * 1.0), i * 1.0, 0.0, 1);
-			vec4 p4 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 0.0, 1);
+			vec4 p1 = vec4(j, i, 1.0, 1);
+			vec4 p2 = vec4(j, i + 1.0, 1.0, 1);
+			vec4 p3 = vec4(j + 1.0, i, 1.0, 1);
+			vec4 p4 = vec4(j + 1.0, i + 1.0, 1.0, 1);
 
-			vec4 p5 = vec4(j * 1.0, i * 1.0, 1.0, 1);
-			vec4 p6 = vec4(j * 1.0, 1.0 + (i * 1.0), 1.0, 1);
-			vec4 p7 = vec4(1.0 + (j * 1.0), i * 1.0, 1.0, 1);
-			vec4 p8 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 1.0, 1);
+			vec4 p5 = vec4(j, i, 0.0, 1);
+			vec4 p6 = vec4(j, i + 1.0, 0.0, 1);
+			vec4 p7 = vec4(j + 1.0, i, 0.0, 1);
+			vec4 p8 = vec4(j + 1.0, i + 1.0, 0.0, 1);
 			
 			// front side points
-			boardpoints[6*(10*i + j)    ] = p1;
-			boardpoints[6*(10*i + j) + 1] = p2;
+			boardpoints[6*(10*i + j)    ] = p2;
+			boardpoints[6*(10*i + j) + 1] = p1;
 			boardpoints[6*(10*i + j) + 2] = p3;
 			boardpoints[6*(10*i + j) + 3] = p2;
 			boardpoints[6*(10*i + j) + 4] = p3;
@@ -496,34 +514,34 @@ void initBoard()
 			boardpoints[6*(10*i + j) + 1200] = p5;
 			boardpoints[6*(10*i + j) + 1201] = p6;
 			boardpoints[6*(10*i + j) + 1202] = p7;
-			boardpoints[6*(10*i + j) + 1203] = p6;
+			boardpoints[6*(10*i + j) + 1203] = p8;
 			boardpoints[6*(10*i + j) + 1204] = p7;
-			boardpoints[6*(10*i + j) + 1205] = p8;
+			boardpoints[6*(10*i + j) + 1205] = p6;
 			// left side points
-			boardpoints[6*(10*i + j) + 2400] = p5;
-			boardpoints[6*(10*i + j) + 2401] = p6;
+			boardpoints[6*(10*i + j) + 2400] = p6;
+			boardpoints[6*(10*i + j) + 2401] = p5;
 			boardpoints[6*(10*i + j) + 2402] = p1;
 			boardpoints[6*(10*i + j) + 2403] = p6;
 			boardpoints[6*(10*i + j) + 2404] = p1;
 			boardpoints[6*(10*i + j) + 2405] = p2;
 			// right side points
-			boardpoints[6*(10*i + j) + 3600] = p3;
-			boardpoints[6*(10*i + j) + 3601] = p4;
+			boardpoints[6*(10*i + j) + 3600] = p4;
+			boardpoints[6*(10*i + j) + 3601] = p3;
 			boardpoints[6*(10*i + j) + 3602] = p7;
-			boardpoints[6*(10*i + j) + 3603] = p4;
-			boardpoints[6*(10*i + j) + 3604] = p7;
-			boardpoints[6*(10*i + j) + 3605] = p8;
+			boardpoints[6*(10*i + j) + 3603] = p8;
+			boardpoints[6*(10*i + j) + 3604] = p4;
+			boardpoints[6*(10*i + j) + 3605] = p7;
 			// top side points
-			boardpoints[6*(10*i + j) + 4800] = p2;
-			boardpoints[6*(10*i + j) + 4801] = p5;
+			boardpoints[6*(10*i + j) + 4800] = p6;
+			boardpoints[6*(10*i + j) + 4801] = p2;
 			boardpoints[6*(10*i + j) + 4802] = p4;
-			boardpoints[6*(10*i + j) + 4803] = p5;
+			boardpoints[6*(10*i + j) + 4803] = p6;
 			boardpoints[6*(10*i + j) + 4804] = p4;
 			boardpoints[6*(10*i + j) + 4805] = p8;
 			// bottom side points
 			boardpoints[6*(10*i + j) + 6000] = p5;
-			boardpoints[6*(10*i + j) + 6001] = p1;
-			boardpoints[6*(10*i + j) + 6002] = p7;
+			boardpoints[6*(10*i + j) + 6001] = p7;
+			boardpoints[6*(10*i + j) + 6002] = p1;
 			boardpoints[6*(10*i + j) + 6003] = p1;
 			boardpoints[6*(10*i + j) + 6004] = p7;
 			boardpoints[6*(10*i + j) + 6005] = p3;
@@ -537,49 +555,6 @@ void initBoard()
 			fruittag[i][j] = false;
 		}
 	}
-
-	mat4 m = mat4(1, 0, 0, -5, 0, 1, 0, -10, 0, 0, 1, 0, 0, 0, 0, 1);
-	mat4 v = LookAt(vec4(0, 10, -10, 1), vec4(0, 0, 0, 1), vec4(0, 1, 1, 0));
-	mat4 p = Perspective(45, xsize/ysize, 1.0, 50.0);
-	mat4 mvp_mat = p * v * m;
-	for (int i = 0; i < 7200; i+=36) {
-		printf("orig [%d]: x=%f, y=%f, z=%f\n",
-			i/36, boardpoints[i].x, boardpoints[i].y, boardpoints[i].z);
-		printf("\t[%d]: x=%f, y=%f, z=%f\n",
-			i/36+1, boardpoints[i+1].x, boardpoints[i+1].y, boardpoints[i+1].z);
-		printf("\t[%d]: x=%f, y=%f, z=%f\n",
-			i/36+2, boardpoints[i+2].x, boardpoints[i+2].y, boardpoints[i+2].z);
-		vec4 res = mvp_mat * boardpoints[i];
-		printf("\tnew: x=%f, y=%f, z=%f\n",
-			res.x, res.y, res.z);
-		res = mvp_mat * boardpoints[i+1];
-		printf("\tnew: x=%f, y=%f, z=%f\n",
-			res.x, res.y, res.z);
-		res = mvp_mat * boardpoints[i+2];
-		printf("\tnew: x=%f, y=%f, z=%f\n",
-			res.x, res.y, res.z);
-	}
-	printf("mvp_mat:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		mvp_mat[0][0], mvp_mat[0][1], mvp_mat[0][2], mvp_mat[0][3],
-		mvp_mat[1][0], mvp_mat[1][1], mvp_mat[1][2], mvp_mat[1][3],
-		mvp_mat[2][0], mvp_mat[2][1], mvp_mat[2][2], mvp_mat[2][3],
-		mvp_mat[3][0], mvp_mat[3][1], mvp_mat[3][2], mvp_mat[3][3]);
-	printf("m:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		m[0][0], m[0][1], m[0][2], m[0][3],
-		m[1][0], m[1][1], m[1][2], m[1][3],
-		m[2][0], m[2][1], m[2][2], m[2][3],
-		m[3][0], m[3][1], m[3][2], m[3][3]);
-	printf("v:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		v[0][0], v[0][1], v[0][2], v[0][3],
-		v[1][0], v[1][1], v[1][2], v[1][3],
-		v[2][0], v[2][1], v[2][2], v[2][3],
-		v[3][0], v[3][1], v[3][2], v[3][3]);
-	printf("p:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		p[0][0], p[0][1], p[0][2], p[0][3],
-		p[1][0], p[1][1], p[1][2], p[1][3],
-		p[2][0], p[2][1], p[2][2], p[2][3],
-		p[3][0], p[3][1], p[3][2], p[3][3]);
-
 
 	// *** set up buffer objects
 	glBindVertexArray(vaoIDs[2]);
@@ -617,8 +592,104 @@ void initCurrentTile()
 	glEnableVertexAttribArray(vColor);
 }
 
+void robotArmBuilder(int segment, 	vec4 p1, vec4 p2, vec4 p3, vec4 p4,
+									vec4 p5, vec4 p6, vec4 p7, vec4 p8) {
+	if (segment < 0 || segment > 2) return;
+	// front side
+	robot_arm[segment*36 + 0] = p1; robot_arm[segment*36 + 1] = p3;
+	robot_arm[segment*36 + 2] = p4;robot_arm[segment*36 + 3] = p1;
+	robot_arm[segment*36 + 4] = p4; robot_arm[segment*36 + 5] = p2;
+	// back side
+	robot_arm[segment*36 + 6] = p8; robot_arm[segment*36 + 7] = p7;
+	robot_arm[segment*36 + 8] = p6; robot_arm[segment*36 + 9] = p7;
+	robot_arm[segment*36 + 10] = p5; robot_arm[segment*36 + 11] = p6;
+	// left side
+	robot_arm[segment*36 + 12] = p6; robot_arm[segment*36 + 13] = p1;
+	robot_arm[segment*36 + 14] = p2; robot_arm[segment*36 + 15] = p6;
+	robot_arm[segment*36 + 16] = p5; robot_arm[segment*36 + 17] = p1;
+	// right side
+	robot_arm[segment*36 + 18] = p4; robot_arm[segment*36 + 19] = p7;
+	robot_arm[segment*36 + 20] = p8; robot_arm[segment*36 + 21] = p4;
+	robot_arm[segment*36 + 22] = p3; robot_arm[segment*36 + 23] = p7;
+	// top side
+	robot_arm[segment*36 + 24] = p6; robot_arm[segment*36 + 25] = p2;
+	robot_arm[segment*36 + 26] = p8; robot_arm[segment*36 + 27] = p2;
+	robot_arm[segment*36 + 28] = p4; robot_arm[segment*36 + 29] = p8;
+	// bottom side
+	robot_arm[segment*36 + 30] = p1; robot_arm[segment*36 + 31] = p7;
+	robot_arm[segment*36 + 32] = p3; robot_arm[segment*36 + 33] = p1;
+	robot_arm[segment*36 + 34] = p5; robot_arm[segment*36 + 35] = p7;
+}
+
+void initRobotArm() {
+	glBindVertexArray(vaoIDs[3]);
+	glGenBuffers(2, &vboIDs[6]);
+
+	// Build arm base
+	vec4 p1 = vec4(0, 0, 2, 1);
+	vec4 p2 = vec4(0, 1, 2, 1);
+	vec4 p3 = vec4(2, 0, 2, 1);
+	vec4 p4 = vec4(2, 1, 2, 1);
+
+	vec4 p5 = vec4(0, 0, 0, 1);
+	vec4 p6 = vec4(0, 1, 0, 1);
+	vec4 p7 = vec4(2, 0, 0, 1);
+	vec4 p8 = vec4(2, 1, 0, 1);
+
+	robotArmBuilder(0, 	p1, p2, p3, p4,
+						p5, p6, p7, p8);
+
+	// Build arm 1
+	p1 = vec4(0, 0, 1, 1);
+	p2 = vec4(0, 1, 1, 1);
+	p3 = vec4(13, 0, 1, 1);
+	p4 = vec4(13, 1, 1, 1);
+
+	p5 = vec4(0, 0, 0, 1);
+	p6 = vec4(0, 1, 0, 1);
+	p7 = vec4(13, 0, 0, 1);
+	p8 = vec4(13, 1, 0, 1);
+
+	robotArmBuilder(1, 	p1, p2, p3, p4,
+						p5, p6, p7, p8);
+
+	// Build arm 2
+	p1 = vec4(0, 0, 1, 1);
+	p2 = vec4(0, 1, 1, 1);
+	p3 = vec4(13, 0, 1, 1);
+	p4 = vec4(13, 1, 1, 1);
+
+	p5 = vec4(0, 0, 0, 1);
+	p6 = vec4(0, 1, 0, 1);
+	p7 = vec4(13, 0, 0, 1);
+	p8 = vec4(13, 1, 0, 1);
+
+	robotArmBuilder(2, 	p1, p2, p3, p4,
+						p5, p6, p7, p8);
+
+	// Robot arm colour
+	vec4 arm_colour[108];
+	for (int i = 0; i < 36; i++) {
+		arm_colour[i     ] = blue1;
+		arm_colour[i + 36] = blue2;
+		arm_colour[i + 72] = blue3;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 108*sizeof(vec4), robot_arm, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vPosition);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
+	glBufferData(GL_ARRAY_BUFFER, 108*sizeof(vec4), arm_colour, GL_STATIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vColor);
+}
+
 void init()
 {
+	srand(time(NULL));		// seed the rand() function
+
 	// Load shaders and use the shader program
 	GLuint program = InitShader("vshader.glsl", "fshader.glsl");
 	glUseProgram(program);
@@ -627,13 +698,14 @@ void init()
 	vPosition = glGetAttribLocation(program, "vPosition");
 	vColor = glGetAttribLocation(program, "vColor");
 
-	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
-	glGenVertexArrays(3, &vaoIDs[0]);
+	// Create 4 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
+	glGenVertexArrays(4, &vaoIDs[0]);
 
 	// Initialize the grid, board, and current tile
 	initGrid();
 	initBoard();
 	initCurrentTile();
+	initRobotArm();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
@@ -648,8 +720,15 @@ void init()
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
 
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+	glCullFace(GL_BACK);
 	glEnable(GL_DEPTH_TEST);
-	srand(time(NULL));		// seed the rand() function
+	glDepthFunc(GL_LESS);
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GEQUAL, 0.2);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -686,8 +765,8 @@ void checkfullrow(int row)
 				board[j][i] = false;
 				fruittag[j][i] = false;
 
-				// replace top row with black
-				colourBlock(j, i, black);
+				// replace top row with transparent
+				colourBlock(j, i, transparent);
 			}
 		}
 	}
@@ -708,7 +787,7 @@ void settile()
 	int x, y;
 
 	// retrieve colours from current piece VBO
-	vec4 colours[24] = {0};
+	vec4 colours[144] = {0};
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colours), colours);
 	
@@ -723,7 +802,7 @@ void settile()
 				board[x][y] = true;
 
 			if (!endgame) {
-				colourBlock(x, y, colours[i*6]);
+				colourBlock(x, y, colours[i*36]);
 			}
 		}
 		// if it does overflow, end the game
@@ -735,8 +814,8 @@ void settile()
 
 	// set current tile to grey if endgame was triggered (show losing block)
 	if (endgame) {
-		vec4 greycolour[24];
-		for (int i = 0; i < 24; i++)
+		vec4 greycolour[144];
+		for (int i = 0; i < 144; i++)
 			greycolour[i] = grey;
 		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(greycolour), greycolour);
 	}
@@ -1019,7 +1098,7 @@ void deleteblock(int x, int y) {
 			fruittag[x][i] = fruittag[x][i+1];
 
 			// replace block with colours of block above
-			colourBlock(x, y, boardcolours[x*6 + (i+1)*60]);
+			colourBlock(x, i, boardcolours[x*6 + (i+1)*60]);
 		}
 		// for top row
 		else {
@@ -1027,7 +1106,7 @@ void deleteblock(int x, int y) {
 			fruittag[x][i] = false;
 
 			// replace top block with black
-			colourBlock(x, i, black);
+			colourBlock(x, i, transparent);
 		}
 	}
 
@@ -1160,30 +1239,20 @@ void display()
 	glUniform1i(locysize, ysize);
 
 	// projection matrix
-	mat4 projection = Perspective(80.0, xsize/ysize, 0.5, 200.0);
+	mat4 projection = Perspective(45.0, (float)xsize/(float)ysize, 0.5, 50.0);
 
 	// camera/view matrix
-	vec4 eye = vec4(5.0, 20.0, 0.0, 1.0);
-	vec4 at = vec4(5.0, 10.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, 1.0, 0.0, 1.0);
+	vec4 eye = vec4(30.0*sin(camera_angle), camera_height, 30.0*cos(camera_angle), 1.0);
+	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
+	vec4 up = vec4(-30.0*sin(camera_angle), camera_height, -30.0*cos(camera_angle), 0.0);
 	mat4 view = LookAt(eye, at, up);
 
-	// model matrix
-	mat4 model = mat4(
-		1.0, 0.0, 0.0, 0.0,
-		0.0, 1.0, 0.0, 0.0,
-		0.0, 0.0, 1.0, 0.0,
-		0.0, 0.0, 0.0, 1.0
-	);
+	// model matrix for current block, grid, and board blocks
+	mat4 model = Translate(-5.0, -10.0, 0.0);
 
 	// combine matrices
 	mat4 mvp_mat = projection * view * model;
-
-	glUniformMatrix4fv(mvp, 1, GL_FALSE, mvp_mat);
-
-	// Bind the VAO representing the grid cells (to be drawn first)
-	glBindVertexArray(vaoIDs[2]);
-	glDrawArrays(GL_TRIANGLES, 0, 7200);
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the current tile (to be drawn on top of the board)
 	glDrawArrays(GL_TRIANGLES, 0, 144); // Draw the current tile (8 triangles)
@@ -1191,6 +1260,31 @@ void display()
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glDrawArrays(GL_LINES, 0, 590); // Draw the grid lines (21+11 = 32 lines)
 
+	// Bind the VAO representing the grid cells (to be drawn first)
+	glBindVertexArray(vaoIDs[2]);
+	glDrawArrays(GL_TRIANGLES, 0, 7200);
+
+
+	// robot arm
+	glBindVertexArray(vaoIDs[3]);
+
+	// robot arm base
+	mat4 base_model = Translate(-8.0, -10.0, -0.5);
+	mvp_mat = projection * view * base_model;
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	// robot arm 1
+	mat4 arm_model = Translate(-7.0, -9.0, 0.5) * RotateZ(90-arm_theta) * Translate(0.0, -0.5, -0.5);
+	mvp_mat = projection * view * arm_model;
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 36, 36);
+
+	// robot arm 2
+	arm_model = Translate(13.0, 0.5, 0.5) * RotateZ(arm_phi-90) * Translate(0.0, -0.5, -0.5);
+	mvp_mat *= arm_model;
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 72, 36);
 
 	glutSwapBuffers();
 }
@@ -1211,20 +1305,45 @@ void reshape(GLsizei w, GLsizei h)
 // Handle arrow key keypresses
 void special(int key, int x, int y)
 {
+	bool ctrl = glutGetModifiers() == GLUT_ACTIVE_CTRL;
+
 	// only record these keys if game has not ended
 	if (!endgame) {
 		switch(key) {
 			case GLUT_KEY_UP:
-				rotate();
+				if (ctrl) {
+					camera_height++;
+					if (camera_height > 20) camera_height = 20;
+				}
+				else
+					rotate();
 				break;
+
 			case GLUT_KEY_DOWN:
-				movetile(vec2(0,-1));
+				if (ctrl) {
+					camera_height--;
+					if (camera_height < 1) camera_height = 1;
+				}
+				else
+					movetile(vec2(0,-1));
 				break;
+
 			case GLUT_KEY_LEFT:
-				movetile(vec2(-1,0));
+				if (ctrl) {
+					camera_angle -= 0.1;
+					if (camera_angle < 0) camera_angle += 2*M_PI;
+				}
+				else
+					movetile(vec2(-1,0));
 				break;
+
 			case GLUT_KEY_RIGHT:
-				movetile(vec2(1,0));
+				if (ctrl) {
+					camera_angle += 0.1;
+					if (camera_angle > 2*M_PI) camera_angle -= 2*M_PI;
+				}
+				else
+					movetile(vec2(1,0));
 				break;
 		}
 	}

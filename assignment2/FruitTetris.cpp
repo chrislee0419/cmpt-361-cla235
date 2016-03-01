@@ -22,8 +22,6 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 
 using namespace std;
 
-#define PI 3.14159265
-
 // xsize and ysize represent the window size - updated if window is reshaped to prevent stretching of the game
 int xsize = 400; 
 int ysize = 720;
@@ -79,11 +77,17 @@ vec4 red 	= 	vec4(1.0, 0.1, 0.1, 1.0);
 vec4 yellow = 	vec4(0.8, 0.8, 0.0, 1.0);
 vec4 green 	= 	vec4(0.1, 0.8, 0.1, 1.0);
 vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0); 
+
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
 vec4 grey 	= 	vec4(0.5, 0.5, 0.5, 1.0);
+
 vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
 vec4 translucent = vec4(1.0, 1.0, 1.0, 0.2);
+
+vec4 blue1 = vec4(0.1, 0.1, 1.0, 1.0);
+vec4 blue2 = vec4(0.2, 0.2, 1.0, 1.0);
+vec4 blue3 = vec4(0.3, 0.3, 1.0, 1.0);
 
 // colours array
 vec4 allColours[5] = {purple, red, yellow, green, orange};
@@ -110,11 +114,13 @@ GLuint mvp;
 // 0	- grid
 // 1	- current piece
 // 2 	- board
-GLuint vaoIDs[3]; // One VAO for each object: the grid, the board, the current piece
+// 4 	- robot arm
+GLuint vaoIDs[4]; // One VAO for each object: the grid, the board, the current piece
 // 0 to 1	- grid
 // 2 to 3	- current piece
 // 4 to 5 	- board
-GLuint vboIDs[6]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+// 6 to 7 	- robot arm
+GLuint vboIDs[8]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 // trigger to pause game when it ends
 bool endgame;
@@ -124,6 +130,11 @@ bool fruittag[10][20];
 
 float camera_angle = 0;
 float camera_height = 20.0;
+
+vec4 robot_arm[108];
+
+float arm_theta = 30;
+float arm_phi = 90;
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -439,7 +450,7 @@ void initGrid()
 
 	// Z-lines
 	for (int i = 0; i < 11; i++) {
-		for (int j = 0; i < 21; i++) {
+		for (int j = 0; j < 21; j++) {
 			gridpoints[128 + 42*i + 2*j] = vec4(i, j, 1, 1);
 			gridpoints[128 + 42*i + 2*j + 1] = vec4(i, j, 0, 1);
 		}
@@ -581,6 +592,100 @@ void initCurrentTile()
 	glEnableVertexAttribArray(vColor);
 }
 
+void robotArmBuilder(int segment, 	vec4 p1, vec4 p2, vec4 p3, vec4 p4,
+									vec4 p5, vec4 p6, vec4 p7, vec4 p8) {
+	if (segment < 0 || segment > 2) return;
+	// front side
+	robot_arm[segment*36 + 0] = p1; robot_arm[segment*36 + 1] = p3;
+	robot_arm[segment*36 + 2] = p4;robot_arm[segment*36 + 3] = p1;
+	robot_arm[segment*36 + 4] = p4; robot_arm[segment*36 + 5] = p2;
+	// back side
+	robot_arm[segment*36 + 6] = p8; robot_arm[segment*36 + 7] = p7;
+	robot_arm[segment*36 + 8] = p6; robot_arm[segment*36 + 9] = p7;
+	robot_arm[segment*36 + 10] = p5; robot_arm[segment*36 + 11] = p6;
+	// left side
+	robot_arm[segment*36 + 12] = p6; robot_arm[segment*36 + 13] = p1;
+	robot_arm[segment*36 + 14] = p2; robot_arm[segment*36 + 15] = p6;
+	robot_arm[segment*36 + 16] = p5; robot_arm[segment*36 + 17] = p1;
+	// right side
+	robot_arm[segment*36 + 18] = p4; robot_arm[segment*36 + 19] = p7;
+	robot_arm[segment*36 + 20] = p8; robot_arm[segment*36 + 21] = p4;
+	robot_arm[segment*36 + 22] = p3; robot_arm[segment*36 + 23] = p7;
+	// top side
+	robot_arm[segment*36 + 24] = p6; robot_arm[segment*36 + 25] = p2;
+	robot_arm[segment*36 + 26] = p8; robot_arm[segment*36 + 27] = p2;
+	robot_arm[segment*36 + 28] = p4; robot_arm[segment*36 + 29] = p8;
+	// bottom side
+	robot_arm[segment*36 + 30] = p1; robot_arm[segment*36 + 31] = p7;
+	robot_arm[segment*36 + 32] = p3; robot_arm[segment*36 + 33] = p1;
+	robot_arm[segment*36 + 34] = p5; robot_arm[segment*36 + 35] = p7;
+}
+
+void initRobotArm() {
+	glBindVertexArray(vaoIDs[3]);
+	glGenBuffers(2, &vboIDs[6]);
+
+	// Build arm base
+	vec4 p1 = vec4(0, 0, 2, 1);
+	vec4 p2 = vec4(0, 1, 2, 1);
+	vec4 p3 = vec4(2, 0, 2, 1);
+	vec4 p4 = vec4(2, 1, 2, 1);
+
+	vec4 p5 = vec4(0, 0, 0, 1);
+	vec4 p6 = vec4(0, 1, 0, 1);
+	vec4 p7 = vec4(2, 0, 0, 1);
+	vec4 p8 = vec4(2, 1, 0, 1);
+
+	robotArmBuilder(0, 	p1, p2, p3, p4,
+						p5, p6, p7, p8);
+
+	// Build arm 1
+	p1 = vec4(0, 0, 1, 1);
+	p2 = vec4(0, 1, 1, 1);
+	p3 = vec4(13, 0, 1, 1);
+	p4 = vec4(13, 1, 1, 1);
+
+	p5 = vec4(0, 0, 0, 1);
+	p6 = vec4(0, 1, 0, 1);
+	p7 = vec4(13, 0, 0, 1);
+	p8 = vec4(13, 1, 0, 1);
+
+	robotArmBuilder(1, 	p1, p2, p3, p4,
+						p5, p6, p7, p8);
+
+	// Build arm 2
+	p1 = vec4(0, 0, 1, 1);
+	p2 = vec4(0, 1, 1, 1);
+	p3 = vec4(13, 0, 1, 1);
+	p4 = vec4(13, 1, 1, 1);
+
+	p5 = vec4(0, 0, 0, 1);
+	p6 = vec4(0, 1, 0, 1);
+	p7 = vec4(13, 0, 0, 1);
+	p8 = vec4(13, 1, 0, 1);
+
+	robotArmBuilder(2, 	p1, p2, p3, p4,
+						p5, p6, p7, p8);
+
+	// Robot arm colour
+	vec4 arm_colour[108];
+	for (int i = 0; i < 36; i++) {
+		arm_colour[i     ] = blue1;
+		arm_colour[i + 36] = blue2;
+		arm_colour[i + 72] = blue3;
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[6]);
+	glBufferData(GL_ARRAY_BUFFER, 108*sizeof(vec4), robot_arm, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vPosition);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[7]);
+	glBufferData(GL_ARRAY_BUFFER, 108*sizeof(vec4), arm_colour, GL_STATIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vColor);
+}
+
 void init()
 {
 	srand(time(NULL));		// seed the rand() function
@@ -593,13 +698,14 @@ void init()
 	vPosition = glGetAttribLocation(program, "vPosition");
 	vColor = glGetAttribLocation(program, "vColor");
 
-	// Create 3 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
-	glGenVertexArrays(3, &vaoIDs[0]);
+	// Create 4 Vertex Array Objects, each representing one 'object'. Store the names in array vaoIDs
+	glGenVertexArrays(4, &vaoIDs[0]);
 
 	// Initialize the grid, board, and current tile
 	initGrid();
 	initBoard();
 	initCurrentTile();
+	initRobotArm();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
@@ -1141,17 +1247,11 @@ void display()
 	vec4 up = vec4(-30.0*sin(camera_angle), camera_height, -30.0*cos(camera_angle), 0.0);
 	mat4 view = LookAt(eye, at, up);
 
-	// model matrix
-	mat4 model = mat4(
-		1.0, 0.0, 0.0, 0.0,
-		0.0, 1.0, 0.0, 0.0,
-		0.0, 0.0, 1.0, 0.0,
-		-5.0, -10.0, 0.0, 1.0
-	);
+	// model matrix for current block, grid, and board blocks
+	mat4 model = Translate(-5.0, -10.0, 0.0);
 
 	// combine matrices
 	mat4 mvp_mat = projection * view * model;
-
 	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the current tile (to be drawn on top of the board)
@@ -1164,6 +1264,27 @@ void display()
 	glBindVertexArray(vaoIDs[2]);
 	glDrawArrays(GL_TRIANGLES, 0, 7200);
 
+
+	// robot arm
+	glBindVertexArray(vaoIDs[3]);
+
+	// robot arm base
+	mat4 base_model = Translate(-8.0, -10.0, -0.5);
+	mvp_mat = projection * view * base_model;
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	// robot arm 1
+	mat4 arm_model = Translate(-7.0, -9.0, 0.5) * RotateZ(90-arm_theta) * Translate(0.0, -0.5, -0.5);
+	mvp_mat = projection * view * arm_model;
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 36, 36);
+
+	// robot arm 2
+	arm_model = Translate(13.0, 0.5, 0.5) * RotateZ(arm_phi-90) * Translate(0.0, -0.5, -0.5);
+	mvp_mat *= arm_model;
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 72, 36);
 
 	glutSwapBuffers();
 }
@@ -1210,7 +1331,7 @@ void special(int key, int x, int y)
 			case GLUT_KEY_LEFT:
 				if (ctrl) {
 					camera_angle -= 0.1;
-					if (camera_angle < 0) camera_angle += 2*PI;
+					if (camera_angle < 0) camera_angle += 2*M_PI;
 				}
 				else
 					movetile(vec2(-1,0));
@@ -1219,7 +1340,7 @@ void special(int key, int x, int y)
 			case GLUT_KEY_RIGHT:
 				if (ctrl) {
 					camera_angle += 0.1;
-					if (camera_angle > 2*PI) camera_angle -= 2*PI;
+					if (camera_angle > 2*M_PI) camera_angle -= 2*M_PI;
 				}
 				else
 					movetile(vec2(1,0));
