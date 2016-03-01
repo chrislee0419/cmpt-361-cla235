@@ -80,6 +80,8 @@ vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0);
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
 vec4 grey 	= 	vec4(0.5, 0.5, 0.5, 1.0);
+vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
+vec4 translucent = vec4(1.0, 1.0, 1.0, 0.2);
 
 // colours array
 vec4 allColours[5] = {purple, red, yellow, green, orange};
@@ -409,13 +411,13 @@ void initGrid()
 	// Front Side
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] = vec4(1.0 * i, 0, 0, 1);
-		gridpoints[2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
+		gridpoints[2*i] = vec4(1.0 * i, 0, 1, 1);
+		gridpoints[2*i + 1] = vec4(1.0 * i, 20.0, 1, 1);
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] = vec4(0, 1.0 * i, 0, 1);
-		gridpoints[22 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
+		gridpoints[22 + 2*i] = vec4(0, 1.0 * i, 1, 1);
+		gridpoints[22 + 2*i + 1] = vec4(10.0, 1.0 * i, 1, 1);
 	}
 
 	// Back Side
@@ -433,14 +435,14 @@ void initGrid()
 	// Z-lines
 	for (int i = 0; i < 12; i++) {
 		for (int j = 0; i < 22; i++) {
-			gridpoints[128 + 22*i + 2*j] = vec4(1.0 * i, 1.0 * j, 0, 1);
-			gridpoints[128 + 22*i + 2*j + 1] = vec4(1.0 * i, 1.0 * j, 1, 1);
+			gridpoints[128 + 42*i + 2*j] = vec4(i, j, 0, 1);
+			gridpoints[128 + 42*i + 2*j + 1] = vec4(i, j, 1, 1);
 		}
 	}
 
 	// Make all grid lines white
 	for (int i = 0; i < 590; i++)
-		gridcolours[i] = white;
+		gridcolours[i] = translucent;
 
 
 	// *** set up buffer objects
@@ -469,7 +471,7 @@ void initBoard()
 
 	for (int i = 0; i < 7200; i++) {
 		// Let the empty cells on the board be black
-		boardcolours[i] = white;
+		boardcolours[i] = transparent;
 	}
 	// Each cell is a square (2 triangles with 6 vertices)
 	for (int i = 0; i < 20; i++){
@@ -538,49 +540,6 @@ void initBoard()
 		}
 	}
 
-	mat4 m = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -5, -10, 0, 1);
-	mat4 v = LookAt(vec4(0, 10, -10, 1), vec4(0, 0, 0, 1), vec4(0, 1, 1, 0));
-	mat4 p = Perspective(45, (float)xsize/(float)ysize, 1.0, 50.0);
-	mat4 mvp_mat = p * v * m;
-	for (int i = 0; i < 7200; i+=36) {
-		printf("orig [%d]: x=%f, y=%f, z=%f\n",
-			i/36, boardpoints[i].x, boardpoints[i].y, boardpoints[i].z);
-		printf("\t[%d]: x=%f, y=%f, z=%f\n",
-			i/36+1, boardpoints[i+1].x, boardpoints[i+1].y, boardpoints[i+1].z);
-		printf("\t[%d]: x=%f, y=%f, z=%f\n",
-			i/36+2, boardpoints[i+2].x, boardpoints[i+2].y, boardpoints[i+2].z);
-		vec4 res = mvp_mat * boardpoints[i];
-		printf("\tnew: x=%f, y=%f, z=%f\n",
-			res.x, res.y, res.z);
-		res = mvp_mat * boardpoints[i+1];
-		printf("\tnew: x=%f, y=%f, z=%f\n",
-			res.x, res.y, res.z);
-		res = mvp_mat * boardpoints[i+2];
-		printf("\tnew: x=%f, y=%f, z=%f\n",
-			res.x, res.y, res.z);
-	}
-	printf("mvp_mat:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		mvp_mat[0][0], mvp_mat[0][1], mvp_mat[0][2], mvp_mat[0][3],
-		mvp_mat[1][0], mvp_mat[1][1], mvp_mat[1][2], mvp_mat[1][3],
-		mvp_mat[2][0], mvp_mat[2][1], mvp_mat[2][2], mvp_mat[2][3],
-		mvp_mat[3][0], mvp_mat[3][1], mvp_mat[3][2], mvp_mat[3][3]);
-	printf("m:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		m[0][0], m[0][1], m[0][2], m[0][3],
-		m[1][0], m[1][1], m[1][2], m[1][3],
-		m[2][0], m[2][1], m[2][2], m[2][3],
-		m[3][0], m[3][1], m[3][2], m[3][3]);
-	printf("v:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		v[0][0], v[0][1], v[0][2], v[0][3],
-		v[1][0], v[1][1], v[1][2], v[1][3],
-		v[2][0], v[2][1], v[2][2], v[2][3],
-		v[3][0], v[3][1], v[3][2], v[3][3]);
-	printf("p:\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n\t{%f, %f, %f, %f}\n",
-		p[0][0], p[0][1], p[0][2], p[0][3],
-		p[1][0], p[1][1], p[1][2], p[1][3],
-		p[2][0], p[2][1], p[2][2], p[2][3],
-		p[3][0], p[3][1], p[3][2], p[3][3]);
-
-
 	// *** set up buffer objects
 	glBindVertexArray(vaoIDs[2]);
 	glGenBuffers(2, &vboIDs[4]);
@@ -619,6 +578,8 @@ void initCurrentTile()
 
 void init()
 {
+	srand(time(NULL));		// seed the rand() function
+
 	// Load shaders and use the shader program
 	GLuint program = InitShader("vshader.glsl", "fshader.glsl");
 	glUseProgram(program);
@@ -649,7 +610,8 @@ void init()
 	glClearColor(0, 0, 0, 0);
 
 	glEnable(GL_DEPTH_TEST);
-	srand(time(NULL));		// seed the rand() function
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1160,12 +1122,12 @@ void display()
 	glUniform1i(locysize, ysize);
 
 	// projection matrix
-	mat4 projection = Perspective(80.0, (float)xsize/(float)ysize, 0.5, 200.0);
+	mat4 projection = Perspective(45.0, (float)xsize/(float)ysize, 0.5, 200.0);
 
 	// camera/view matrix
-	vec4 eye = vec4(0.0, 10.0, -20.0, 1.0);
+	vec4 eye = vec4(0.0, 20.0, 30.0, 1.0);
 	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, 1.0, 0.0, 0.0);
+	vec4 up = vec4(0.0, 2.0, -3.0, 0.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
@@ -1173,23 +1135,23 @@ void display()
 		1.0, 0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
-		0.0, 0.0, 0.0, 1.0
+		-5.0, -10.0, 0.0, 1.0
 	);
 
 	// combine matrices
 	mat4 mvp_mat = projection * view * model;
 
-	glUniformMatrix4fv(mvp, 1, GL_FALSE, mvp_mat);
-
-	// Bind the VAO representing the grid cells (to be drawn first)
-	glBindVertexArray(vaoIDs[2]);
-	glDrawArrays(GL_TRIANGLES, 0, 7200);
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 
 	glBindVertexArray(vaoIDs[1]); // Bind the VAO representing the current tile (to be drawn on top of the board)
 	glDrawArrays(GL_TRIANGLES, 0, 144); // Draw the current tile (8 triangles)
 
 	glBindVertexArray(vaoIDs[0]); // Bind the VAO representing the grid lines (to be drawn on top of everything else)
 	glDrawArrays(GL_LINES, 0, 590); // Draw the grid lines (21+11 = 32 lines)
+
+	// Bind the VAO representing the grid cells (to be drawn first)
+	glBindVertexArray(vaoIDs[2]);
+	glDrawArrays(GL_TRIANGLES, 0, 7200);
 
 
 	glutSwapBuffers();
