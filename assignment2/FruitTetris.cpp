@@ -122,7 +122,7 @@ bool endgame;
 // used to tag fruits for deletion
 bool fruittag[10][20];
 
-float camera_angle = 3*PI/2;
+float camera_angle = 0;
 float camera_height = 20.0;
 
 
@@ -158,23 +158,23 @@ void updatetile()
 
 		// Create the 8 corners of the cube - these vertices are using location in pixels
 		// These vertices are later converted by the vertex shader
-		vec4 p1 = vec4(x * 1.0, y * 1.0, 0.0, 1); 
-		vec4 p2 = vec4(x * 1.0, 1.0 + (y * 1.0), 0.0, 1);
-		vec4 p3 = vec4(1.0 + (x * 1.0), y * 1.0, 0.0, 1);
-		vec4 p4 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 0.0, 1);
-		vec4 p5 = vec4(x * 1.0, y * 1.0, 1.0, 1); 
-		vec4 p6 = vec4(x * 1.0, 1.0 + (y * 1.0), 1.0, 1);
-		vec4 p7 = vec4(1.0 + (x * 1.0), y * 1.0, 1.0, 1);
-		vec4 p8 = vec4(1.0 + (x * 1.0), 1.0 + (y * 1.0), 1.0, 1);
+		vec4 p1 = vec4(x, y, 1.0, 1); 
+		vec4 p2 = vec4(x, y + 1.0, 1.0, 1);
+		vec4 p3 = vec4(x + 1.0, y, 1.0, 1);
+		vec4 p4 = vec4(x + 1.0, y + 1.0, 1.0, 1);
+		vec4 p5 = vec4(x, y, 0.0, 1); 
+		vec4 p6 = vec4(x, y + 1.0, 0.0, 1);
+		vec4 p7 = vec4(x + 1.0, y, 0.0, 1);
+		vec4 p8 = vec4(x + 1.0, y + 1.0, 0.0, 1);
 
 		// Two points are used by two triangles each
 		vec4 newpoints[36] = {
-			p1, p2, p3, p2, p3, p4,
-			p5, p6, p7, p6, p7, p8, 
-			p5, p6, p1, p6, p1, p2, 
-			p3, p4, p7, p4, p7, p8,
-			p2, p6, p4, p6, p4, p8,
-			p5, p1, p7, p1, p7, p3}; 
+			p2, p1, p3, p2, p3, p4,
+			p5, p6, p7, p6, p8, p7, 
+			p2, p6, p5, p2, p5, p1, 
+			p4, p3, p7, p4, p7, p8,
+			p6, p2, p4, p6, p4, p8,
+			p1, p5, p7, p1, p7, p3}; 
 
 		// Put new data in the VBO
 		glBufferSubData(GL_ARRAY_BUFFER, i*36*sizeof(vec4), 36*sizeof(vec4), newpoints); 
@@ -416,32 +416,32 @@ void initGrid()
 	// Front Side
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[2*i] = vec4(1.0 * i, 0, 1, 1);
-		gridpoints[2*i + 1] = vec4(1.0 * i, 20.0, 1, 1);
+		gridpoints[2*i] = vec4(i, 0, 1, 1);
+		gridpoints[2*i + 1] = vec4(i, 20.0, 1, 1);
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[22 + 2*i] = vec4(0, 1.0 * i, 1, 1);
-		gridpoints[22 + 2*i + 1] = vec4(10.0, 1.0 * i, 1, 1);
+		gridpoints[22 + 2*i] = vec4(0, i, 1, 1);
+		gridpoints[22 + 2*i + 1] = vec4(10.0, i, 1, 1);
 	}
 
 	// Back Side
 	// Vertical lines 
 	for (int i = 0; i < 11; i++){
-		gridpoints[64 + 2*i] = vec4(1.0 * i, 0, 0, 1);
-		gridpoints[64 + 2*i + 1] = vec4(1.0 * i, 20.0, 0, 1);
+		gridpoints[64 + 2*i] = vec4(i, 0, 0, 1);
+		gridpoints[64 + 2*i + 1] = vec4(i, 20.0, 0, 1);
 	}
 	// Horizontal lines
 	for (int i = 0; i < 21; i++){
-		gridpoints[86 + 2*i] = vec4(0, 1.0 * i, 0, 1);
-		gridpoints[86 + 2*i + 1] = vec4(10.0, 1.0 * i, 0, 1);
+		gridpoints[86 + 2*i] = vec4(0, i, 0, 1);
+		gridpoints[86 + 2*i + 1] = vec4(10.0, i, 0, 1);
 	}
 
 	// Z-lines
-	for (int i = 0; i < 12; i++) {
-		for (int j = 0; i < 22; i++) {
-			gridpoints[128 + 42*i + 2*j] = vec4(i, j, 0, 1);
-			gridpoints[128 + 42*i + 2*j + 1] = vec4(i, j, 1, 1);
+	for (int i = 0; i < 11; i++) {
+		for (int j = 0; i < 21; i++) {
+			gridpoints[128 + 42*i + 2*j] = vec4(i, j, 1, 1);
+			gridpoints[128 + 42*i + 2*j + 1] = vec4(i, j, 0, 1);
 		}
 	}
 
@@ -482,19 +482,19 @@ void initBoard()
 	for (int i = 0; i < 20; i++){
 		for (int j = 0; j < 10; j++)
 		{		
-			vec4 p1 = vec4(j * 1.0, i * 1.0, 0.0, 1);
-			vec4 p2 = vec4(j * 1.0, 1.0 + (i * 1.0), 0.0, 1);
-			vec4 p3 = vec4(1.0 + (j * 1.0), i * 1.0, 0.0, 1);
-			vec4 p4 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 0.0, 1);
+			vec4 p1 = vec4(j, i, 1.0, 1);
+			vec4 p2 = vec4(j, i + 1.0, 1.0, 1);
+			vec4 p3 = vec4(j + 1.0, i, 1.0, 1);
+			vec4 p4 = vec4(j + 1.0, i + 1.0, 1.0, 1);
 
-			vec4 p5 = vec4(j * 1.0, i * 1.0, 1.0, 1);
-			vec4 p6 = vec4(j * 1.0, 1.0 + (i * 1.0), 1.0, 1);
-			vec4 p7 = vec4(1.0 + (j * 1.0), i * 1.0, 1.0, 1);
-			vec4 p8 = vec4(1.0 + (j * 1.0), 1.0 + (i * 1.0), 1.0, 1);
+			vec4 p5 = vec4(j, i, 0.0, 1);
+			vec4 p6 = vec4(j, i + 1.0, 0.0, 1);
+			vec4 p7 = vec4(j + 1.0, i, 0.0, 1);
+			vec4 p8 = vec4(j + 1.0, i + 1.0, 0.0, 1);
 			
 			// front side points
-			boardpoints[6*(10*i + j)    ] = p1;
-			boardpoints[6*(10*i + j) + 1] = p2;
+			boardpoints[6*(10*i + j)    ] = p2;
+			boardpoints[6*(10*i + j) + 1] = p1;
 			boardpoints[6*(10*i + j) + 2] = p3;
 			boardpoints[6*(10*i + j) + 3] = p2;
 			boardpoints[6*(10*i + j) + 4] = p3;
@@ -503,34 +503,34 @@ void initBoard()
 			boardpoints[6*(10*i + j) + 1200] = p5;
 			boardpoints[6*(10*i + j) + 1201] = p6;
 			boardpoints[6*(10*i + j) + 1202] = p7;
-			boardpoints[6*(10*i + j) + 1203] = p6;
+			boardpoints[6*(10*i + j) + 1203] = p8;
 			boardpoints[6*(10*i + j) + 1204] = p7;
-			boardpoints[6*(10*i + j) + 1205] = p8;
+			boardpoints[6*(10*i + j) + 1205] = p6;
 			// left side points
-			boardpoints[6*(10*i + j) + 2400] = p5;
-			boardpoints[6*(10*i + j) + 2401] = p6;
+			boardpoints[6*(10*i + j) + 2400] = p6;
+			boardpoints[6*(10*i + j) + 2401] = p5;
 			boardpoints[6*(10*i + j) + 2402] = p1;
 			boardpoints[6*(10*i + j) + 2403] = p6;
 			boardpoints[6*(10*i + j) + 2404] = p1;
 			boardpoints[6*(10*i + j) + 2405] = p2;
 			// right side points
-			boardpoints[6*(10*i + j) + 3600] = p3;
-			boardpoints[6*(10*i + j) + 3601] = p4;
+			boardpoints[6*(10*i + j) + 3600] = p4;
+			boardpoints[6*(10*i + j) + 3601] = p3;
 			boardpoints[6*(10*i + j) + 3602] = p7;
-			boardpoints[6*(10*i + j) + 3603] = p4;
-			boardpoints[6*(10*i + j) + 3604] = p7;
-			boardpoints[6*(10*i + j) + 3605] = p8;
+			boardpoints[6*(10*i + j) + 3603] = p8;
+			boardpoints[6*(10*i + j) + 3604] = p4;
+			boardpoints[6*(10*i + j) + 3605] = p7;
 			// top side points
-			boardpoints[6*(10*i + j) + 4800] = p2;
-			boardpoints[6*(10*i + j) + 4801] = p5;
+			boardpoints[6*(10*i + j) + 4800] = p6;
+			boardpoints[6*(10*i + j) + 4801] = p2;
 			boardpoints[6*(10*i + j) + 4802] = p4;
-			boardpoints[6*(10*i + j) + 4803] = p5;
+			boardpoints[6*(10*i + j) + 4803] = p6;
 			boardpoints[6*(10*i + j) + 4804] = p4;
 			boardpoints[6*(10*i + j) + 4805] = p8;
 			// bottom side points
 			boardpoints[6*(10*i + j) + 6000] = p5;
-			boardpoints[6*(10*i + j) + 6001] = p1;
-			boardpoints[6*(10*i + j) + 6002] = p7;
+			boardpoints[6*(10*i + j) + 6001] = p7;
+			boardpoints[6*(10*i + j) + 6002] = p1;
 			boardpoints[6*(10*i + j) + 6003] = p1;
 			boardpoints[6*(10*i + j) + 6004] = p7;
 			boardpoints[6*(10*i + j) + 6005] = p3;
@@ -614,9 +614,15 @@ void init()
 	glBindVertexArray(0);
 	glClearColor(0, 0, 0, 0);
 
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+	glCullFace(GL_BACK);
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GEQUAL, 0.2);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1132,7 +1138,7 @@ void display()
 	// camera/view matrix
 	vec4 eye = vec4(30.0*sin(camera_angle), camera_height, 30.0*cos(camera_angle), 1.0);
 	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(-30.0*sin(camera_angle), abs(camera_height), -30.0*cos(camera_angle), 0.0);
+	vec4 up = vec4(-30.0*sin(camera_angle), camera_height, -30.0*cos(camera_angle), 0.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
@@ -1140,7 +1146,7 @@ void display()
 		1.0, 0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
-		-6.0, -11.0, 0.0, 1.0
+		-5.0, -10.0, 0.0, 1.0
 	);
 
 	// combine matrices
@@ -1195,9 +1201,10 @@ void special(int key, int x, int y)
 			case GLUT_KEY_DOWN:
 				if (ctrl) {
 					camera_height--;
-					if (camera_height < -20) camera_height = -20;
+					if (camera_height < 1) camera_height = 1;
 				}
-				movetile(vec2(0,-1));
+				else
+					movetile(vec2(0,-1));
 				break;
 
 			case GLUT_KEY_LEFT:
