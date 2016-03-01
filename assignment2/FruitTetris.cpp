@@ -18,9 +18,11 @@ Modified in Sep 2014 by Honghua Li (honghual@sfu.ca).
 #include <cstdlib>
 #include <iostream>
 #include <ctime>
+#include <cmath>
 
 using namespace std;
 
+#define PI 3.14159265
 
 // xsize and ysize represent the window size - updated if window is reshaped to prevent stretching of the game
 int xsize = 400; 
@@ -119,6 +121,9 @@ bool endgame;
 
 // used to tag fruits for deletion
 bool fruittag[10][20];
+
+float camera_angle = 3*PI/2;
+float camera_height = 20.0;
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -470,7 +475,7 @@ void initBoard()
 	vec4 boardpoints[7200];
 
 	for (int i = 0; i < 7200; i++) {
-		// Let the empty cells on the board be black
+		// Let the empty cells on the board be transparent
 		boardcolours[i] = transparent;
 	}
 	// Each cell is a square (2 triangles with 6 vertices)
@@ -648,8 +653,8 @@ void checkfullrow(int row)
 				board[j][i] = false;
 				fruittag[j][i] = false;
 
-				// replace top row with black
-				colourBlock(j, i, black);
+				// replace top row with transparent
+				colourBlock(j, i, transparent);
 			}
 		}
 	}
@@ -670,7 +675,7 @@ void settile()
 	int x, y;
 
 	// retrieve colours from current piece VBO
-	vec4 colours[24] = {0};
+	vec4 colours[144] = {0};
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colours), colours);
 	
@@ -685,7 +690,7 @@ void settile()
 				board[x][y] = true;
 
 			if (!endgame) {
-				colourBlock(x, y, colours[i*6]);
+				colourBlock(x, y, colours[i*36]);
 			}
 		}
 		// if it does overflow, end the game
@@ -697,8 +702,8 @@ void settile()
 
 	// set current tile to grey if endgame was triggered (show losing block)
 	if (endgame) {
-		vec4 greycolour[24];
-		for (int i = 0; i < 24; i++)
+		vec4 greycolour[144];
+		for (int i = 0; i < 144; i++)
 			greycolour[i] = grey;
 		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(greycolour), greycolour);
 	}
@@ -981,7 +986,7 @@ void deleteblock(int x, int y) {
 			fruittag[x][i] = fruittag[x][i+1];
 
 			// replace block with colours of block above
-			colourBlock(x, y, boardcolours[x*6 + (i+1)*60]);
+			colourBlock(x, i, boardcolours[x*6 + (i+1)*60]);
 		}
 		// for top row
 		else {
@@ -989,7 +994,7 @@ void deleteblock(int x, int y) {
 			fruittag[x][i] = false;
 
 			// replace top block with black
-			colourBlock(x, i, black);
+			colourBlock(x, i, transparent);
 		}
 	}
 
@@ -1122,12 +1127,12 @@ void display()
 	glUniform1i(locysize, ysize);
 
 	// projection matrix
-	mat4 projection = Perspective(45.0, (float)xsize/(float)ysize, 0.5, 200.0);
+	mat4 projection = Perspective(45.0, (float)xsize/(float)ysize, 0.5, 50.0);
 
 	// camera/view matrix
-	vec4 eye = vec4(0.0, 20.0, 30.0, 1.0);
+	vec4 eye = vec4(30.0*sin(camera_angle), camera_height, 30.0*cos(camera_angle), 1.0);
 	vec4 at = vec4(0.0, 0.0, 0.0, 1.0);
-	vec4 up = vec4(0.0, 2.0, -3.0, 0.0);
+	vec4 up = vec4(-30.0*sin(camera_angle), abs(camera_height), -30.0*cos(camera_angle), 0.0);
 	mat4 view = LookAt(eye, at, up);
 
 	// model matrix
@@ -1135,7 +1140,7 @@ void display()
 		1.0, 0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
-		-5.0, -10.0, 0.0, 1.0
+		-6.0, -11.0, 0.0, 1.0
 	);
 
 	// combine matrices
@@ -1173,20 +1178,44 @@ void reshape(GLsizei w, GLsizei h)
 // Handle arrow key keypresses
 void special(int key, int x, int y)
 {
+	bool ctrl = glutGetModifiers() == GLUT_ACTIVE_CTRL;
+
 	// only record these keys if game has not ended
 	if (!endgame) {
 		switch(key) {
 			case GLUT_KEY_UP:
-				rotate();
+				if (ctrl) {
+					camera_height++;
+					if (camera_height > 20) camera_height = 20;
+				}
+				else
+					rotate();
 				break;
+
 			case GLUT_KEY_DOWN:
+				if (ctrl) {
+					camera_height--;
+					if (camera_height < -20) camera_height = -20;
+				}
 				movetile(vec2(0,-1));
 				break;
+
 			case GLUT_KEY_LEFT:
-				movetile(vec2(-1,0));
+				if (ctrl) {
+					camera_angle -= 0.1;
+					if (camera_angle < 0) camera_angle += 2*PI;
+				}
+				else
+					movetile(vec2(-1,0));
 				break;
+
 			case GLUT_KEY_RIGHT:
-				movetile(vec2(1,0));
+				if (ctrl) {
+					camera_angle += 0.1;
+					if (camera_angle > 2*PI) camera_angle -= 2*PI;
+				}
+				else
+					movetile(vec2(1,0));
 				break;
 		}
 	}
