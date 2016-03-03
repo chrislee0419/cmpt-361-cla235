@@ -592,7 +592,7 @@ void initCurrentTile()
 	glEnableVertexAttribArray(vColor);
 }
 
-void robotArmBuilder(int segment, 	vec4 p1, vec4 p2, vec4 p3, vec4 p4,
+void robotBuilder(int segment, 	vec4 p1, vec4 p2, vec4 p3, vec4 p4,
 									vec4 p5, vec4 p6, vec4 p7, vec4 p8) {
 	if (segment < 0 || segment > 2) return;
 	// front side
@@ -625,7 +625,7 @@ void initRobotArm() {
 	glBindVertexArray(vaoIDs[3]);
 	glGenBuffers(2, &vboIDs[6]);
 
-	// Build arm base
+	// Define points for robot base
 	vec4 p1 = vec4(0, 0, 2, 1);
 	vec4 p2 = vec4(0, 1, 2, 1);
 	vec4 p3 = vec4(2, 0, 2, 1);
@@ -636,35 +636,27 @@ void initRobotArm() {
 	vec4 p7 = vec4(2, 0, 0, 1);
 	vec4 p8 = vec4(2, 1, 0, 1);
 
-	robotArmBuilder(0, 	p1, p2, p3, p4,
+	// Build arm base
+	robotBuilder(0, 	p1, p2, p3, p4,
 						p5, p6, p7, p8);
 
-	// Build arm 1
+	// Define points for robot arms
 	p1 = vec4(0, 0, 1, 1);
 	p2 = vec4(0, 1, 1, 1);
-	p3 = vec4(13, 0, 1, 1);
-	p4 = vec4(13, 1, 1, 1);
+	p3 = vec4(11, 0, 1, 1);
+	p4 = vec4(11, 1, 1, 1);
 
 	p5 = vec4(0, 0, 0, 1);
 	p6 = vec4(0, 1, 0, 1);
-	p7 = vec4(13, 0, 0, 1);
-	p8 = vec4(13, 1, 0, 1);
+	p7 = vec4(11, 0, 0, 1);
+	p8 = vec4(11, 1, 0, 1);
 
-	robotArmBuilder(1, 	p1, p2, p3, p4,
+	// Build arm 1
+	robotBuilder(1, 	p1, p2, p3, p4,
 						p5, p6, p7, p8);
 
 	// Build arm 2
-	p1 = vec4(0, 0, 1, 1);
-	p2 = vec4(0, 1, 1, 1);
-	p3 = vec4(13, 0, 1, 1);
-	p4 = vec4(13, 1, 1, 1);
-
-	p5 = vec4(0, 0, 0, 1);
-	p6 = vec4(0, 1, 0, 1);
-	p7 = vec4(13, 0, 0, 1);
-	p8 = vec4(13, 1, 0, 1);
-
-	robotArmBuilder(2, 	p1, p2, p3, p4,
+	robotBuilder(2, 	p1, p2, p3, p4,
 						p5, p6, p7, p8);
 
 	// Robot arm colour
@@ -1281,7 +1273,7 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 36, 36);
 
 	// robot arm 2
-	arm_model = Translate(13.0, 0.5, 0.5) * RotateZ(arm_phi-90) * Translate(0.0, -0.5, -0.5);
+	arm_model = Translate(11.0, 0.5, 0.5) * RotateZ(arm_phi-90) * Translate(0.0, -0.5, -0.5);
 	mvp_mat *= arm_model;
 	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 	glDrawArrays(GL_TRIANGLES, 72, 36);
@@ -1365,6 +1357,22 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		case 'r': // 'r' key restarts the game
 			restart();
+			break;
+		case 'a':
+			arm_theta -= 5;
+			if (arm_theta < -90) arm_theta = -90;
+			break;
+		case 'd':
+			arm_theta += 5;
+			if (arm_theta > 90) arm_theta = 90;
+			break;
+		case 'w':
+			arm_phi += 5;
+			if (arm_phi > 180) arm_phi = 180;
+			break;
+		case 's':
+			arm_phi -= 5;
+			if (arm_phi < -80) arm_phi = -80;
 			break;
 	}
 	glutPostRedisplay();
