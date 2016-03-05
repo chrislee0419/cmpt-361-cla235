@@ -28,7 +28,8 @@ int ysize = 720;
 
 // current tile
 vec2 tile[4]; // An array of 4 2d vectors representing displacement from a 'center' piece of the tile, on the grid
-vec2 tilepos = vec2(5, 19); // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
+vec2 tilepos; // The position of the current tile using grid coordinates ((0,0) is the bottom left corner)
+vec4 tilecol[144];
 
 // An array storing all possible orientations of all possible tiles
 // The 'tile' array will always be some element [i][j] of this array (an array of vec2)
@@ -136,6 +137,12 @@ vec4 robot_arm[108];
 float arm_theta = 30;
 float arm_phi = 90;
 
+// used to determine whether the current tile is released from the arm
+bool release;
+int release_timer;
+
+int second_timer;
+
 
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -196,170 +203,11 @@ void updatetile()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// Returns largest continuous space
-// Should not return 0, as that means the row should be cleared
-int checkrowspaces(int row)
-{
-	int max = 0, count = 0;
-
-	for (int i = 0; i < 10; i++) {
-		if (board[i][row])
-			count = 0;
-		else
-			count++;
-		if (count > max)
-			max = count;
-	}
-
-	return max;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Returns a pointer to a boolean array of size 11
-// The first index is true if there is at least one valid position
-// The next ten indices are true if the orientation will fit
-// for that respective column
-bool* checkorientationfit(int orientation)
-{
-	vec2 rotation[4];
-	vec2 pos = vec2(0,19);
-	int x, y, i, j;
-	bool *result = new bool[11];
-
-	// initialize first value of result to default
-	result[0] = false;
-
-	// copy the orientation you want to test
-	for (i = 0; i < 4; i++)
-		rotation[i] = AllRotations[orientation][i];
-
-	// try to find a valid position for the specific orientation
-	for (i = 0; i < 10; i++) {
-		// test the orientation centred at (i, 19)
-		pos[0] = i;
-		for (j = 0; j < 4; j++) {
-			x = rotation[j][0] + pos[0];
-			y = rotation[j][1] + pos[1];
-
-			// if there is an overlap with an existing block, position is not valid
-			if (y < 20 && board[x][y])
-				break;
-			else if (x < 0 || x > 9)
-				break;
-		}
-
-		// if the orientation can be placed without overlap, update the result array
-		if (j == 4) {
-			result[i+1] = true;
-			result[0] = true;
-		}
-		else
-			result[i+1] = false;
-	}
-
-	return result;
-
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
-// Returns true if a new block is chosen, false indicates game end
-bool chooseorientation() {
-	// first, determine how wide the new piece can be
-	int maxwidth = checkrowspaces(19);
-	bool rotations[24];
-
-	// if maxspace = 1, then only vertical "I" blocks can fit
-	// so just test if it can even fit at all
-	if (maxwidth == 1) {
-		bool* check = checkorientationfit(21);
-
-		// if it can't fit anywhere on the board, end the game and return;
-		if ( !check[0] ) {
-			delete[] check;
-			return false;
-		}
-
-		// find a valid position
-		int pos = rand() % 10;
-		while ( !check[pos + 1] )
-			pos = rand() % 10;
-
-		// set the position
-		tilepos[0] = pos;
-		tilepos[1] = 19;
-
-		// copy orientation to current tile
-		for (int i = 0; i < 4; i++)
-			tile[i] = AllRotations[21][i];
-
-		delete[] check;
-		return true;
-	}
-
-	// initializing rotations
-	for (int i = 0; i < 24; i++)
-		rotations[24] = true;
-
-	// eliminate orientations that are too wide
-	if (maxwidth < 4) {
-		rotations[20] = false;
-		rotations[22] = false;
-	}
-	if (maxwidth < 3) {
-		for (int i = 0; i < 10; i++)
-			rotations[2*i] = false;
-	}
-	// if both these if statements are triggered, maxwidth should be 2
-	// (maxwidth = 1 was dealt with earlier)
-
-	int pos, orientation, i;
-	bool *check;
-
-	while (true) {
-		// choose a random orientation as the candidate new piece
-		orientation = rand() % 24;
-		// if the orientation chosen cannot fit, continue
-		if ( !rotations[orientation] )
-			continue;
-
-		check = checkorientationfit(orientation);
-		// if the candidate piece cannot fit, flag and continue
-		if ( !check[0] ) {
-			rotations[orientation] = false;
-			delete[] check;
-
-			// check if there are anymore valid orientations
-			// if not, return with false;
-			for (i = 0; i < 24; i++) {
-				// valid rotation found
-				if ( rotations[i] )
-					break;
-			}
-			// no valid orientations
-			if (i == 24)
-				return false;
-
-		}
-		// otherwise, if it does fit, find a valid position
-		else {
-			pos = rand() % 10;
-			while ( !check[pos + 1] )
-				pos = rand() % 10;
-
-			tilepos[0] = pos;
-			tilepos[1] = 19;
-
-			// copy orientation to current tile
-			for (i = 0; i < 4; i++)
-				tile[i] = AllRotations[orientation][i];
-
-			delete[] check;
-			return true;
-		}
-	}
-
+// chooses new orientation
+void chooseorientation() {
+	int orientation = rand() % 24;
+	for (int i = 0; i < 4 ; i++)
+		tile[i] = AllRotations[orientation][i];
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -385,32 +233,46 @@ void greyboard() {
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// updates tilepos based on current position of robot arm
+void updatetileposition() {
+	if (release) return;
+
+	// convert current tile position to a vec4 so we can use matrix multiplcation
+	// place at the tip of the second arm
+	vec4 tile_position = vec4(12, 0, 0, 1);
+
+// Translate(-7.0, -9.0, 0) *
+	// perform transformation similar to when displaying second robot arm
+	tile_position = RotateZ(90-arm_theta) *
+		Translate(11, 0, 0) * RotateZ(arm_phi-90) * tile_position;
+
+	// keep the x and y components
+	tilepos[0] = tile_position[0];
+	tilepos[1] = tile_position[1];
+
+	// display updated tile
+	updatetile();
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
+	chooseorientation();
 
-	if ( !chooseorientation() ) {
-		// no valid orientation, end the game
-		endgame = true;
-		greyboard();
-	}
-
-	updatetile(); 
+	updatetileposition(); 
 
 	// Update the color VBO of current tile
-	vec4 newcolours[144];
 	vec4 blockcolour;
 	for (int i = 0; i < 144; i+=36) {
-		if (endgame)
-			blockcolour = grey;
-		else
-			blockcolour = allColours[rand() % 5];
+		blockcolour = allColours[rand() % 5];
 		for (int j = i; j < i+36; j++)
-			newcolours[j] = blockcolour;
+			tilecol[j] = blockcolour;
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]); // Bind the VBO containing current tile vertex colours
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(newcolours), newcolours); // Put the colour data in the VBO
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tilecol), tilecol); // Put the colour data in the VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
@@ -640,7 +502,7 @@ void initRobotArm() {
 	robotBuilder(0, 	p1, p2, p3, p4,
 						p5, p6, p7, p8);
 
-	// Define points for robot arms
+	// Define points for robot arm 1
 	p1 = vec4(0, 0, 1, 1);
 	p2 = vec4(0, 1, 1, 1);
 	p3 = vec4(11, 0, 1, 1);
@@ -654,6 +516,17 @@ void initRobotArm() {
 	// Build arm 1
 	robotBuilder(1, 	p1, p2, p3, p4,
 						p5, p6, p7, p8);
+
+	// Points for robot arm 2
+	p1 = vec4(0, 0, 0.5, 1);
+	p2 = vec4(0, 0.5, 0.5, 1);
+	p3 = vec4(12, 0, 0.5, 1);
+	p4 = vec4(12, 0.5, 0.5, 1);
+
+	p5 = vec4(0, 0, 0, 1);
+	p6 = vec4(0, 0.5, 0, 1);
+	p7 = vec4(12, 0, 0, 1);
+	p8 = vec4(12, 0.5, 0, 1);
 
 	// Build arm 2
 	robotBuilder(2, 	p1, p2, p3, p4,
@@ -706,6 +579,9 @@ void init()
 
 	// Game initialization
 	endgame = false;
+	release = false;
+	release_timer = 0;
+	second_timer = 600;
 	newtile(); // create new next tile
 
 	// set to default
@@ -789,18 +665,17 @@ void settile()
 
 		// make sure the current block does not overflow off the top
 		// if game has ended, allow overflow to prevent infinite loop
-		if (y < 20 || endgame) {
-			if (y < 20)
-				board[x][y] = true;
+		if (y < 20) {
+			board[x][y] = true;
 
 			if (!endgame) {
-				colourBlock(x, y, colours[i*36]);
+				colourBlock(x, y, tilecol[i*36]);
 			}
 		}
 		// if it does overflow, end the game
 		else {
 			endgame = true;
-			i = -1;
+			break;
 		}
 	}
 
@@ -809,6 +684,7 @@ void settile()
 		vec4 greycolour[144];
 		for (int i = 0; i < 144; i++)
 			greycolour[i] = grey;
+		glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(greycolour), greycolour);
 	}
 
@@ -1169,9 +1045,68 @@ void rotate()
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// returns true if current tile is out-of-bounds or overlapping a board block
+bool collisioncheck() {
+	int rounded_x = (int)round(tilepos[0]);
+	int rounded_y = (int)round(tilepos[1]);
+	
+	for (int i = 0; i < 4; i++) {
+		int x = rounded_x + (int)tile[i][0];
+		int y = rounded_y + (int)tile[i][1];
+
+		// check for out-of-bounds
+		if ( x < 0 || x > 10 || y < 0 || y > 20)
+			return true;
+
+		// check for collision with existing board element
+		if ( board[x][y] )
+			return true;
+	}
+	
+	return false;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+// changes the colour of the current tile depending on if there is a collision
+void changetilecolour(bool collision) {
+	vec4 colour[144];
+	if (collision) {
+		for (int i = 0; i < 144; i++)
+			colour[i] = grey;
+	}
+	else {
+		for (int i = 0; i < 144; i++)
+			colour[i] = tilecol[i];
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 144*sizeof(vec4), colour);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
+void releasetile() {
+	if ( collisioncheck() ) return;
+	tilepos[0] = round(tilepos[0]);
+	tilepos[1] = round(tilepos[1]);
+	updatetile();
+
+	release = true;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 void timer(int value) {
+	// if time has run out, end the game
+	if ( second_timer <= 0 ) {
+		endgame = true;
+		greyboard();
+	}
 	// if no top out, continue the game
-	if ( !endgame && !movetile(vec2(0,-1)) ) {
+	if ( release_timer >= 7 && release && !endgame && !movetile(vec2(0,-1)) ) {
 		settile();
 
 		// if no partial lock out, check for completed rows, then create a new tile
@@ -1200,12 +1135,19 @@ void timer(int value) {
 			tagfruits();
 			deletetags();
 
+			release = false;
+
 			newtile();
 		}
+		
+		release_timer = 0;
 	}
 
+	if (release) release_timer++;
+	second_timer--;
+
 	glutPostRedisplay();
-	glutTimerFunc(700, timer, 0);
+	glutTimerFunc(100, timer, 0);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1216,6 +1158,10 @@ void restart()
 	initBoard();
 
 	endgame = false;
+	release = false;
+	release_timer = 0;
+	second_timer = 60;
+
 	newtile();
 }
 
@@ -1273,7 +1219,7 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 36, 36);
 
 	// robot arm 2
-	arm_model = Translate(11.0, 0.5, 0.5) * RotateZ(arm_phi-90) * Translate(0.0, -0.5, -0.5);
+	arm_model = Translate(10.5, 0.5, 0.5) * RotateZ(arm_phi-90) * Translate(0.0, -0.25, -0.25);
 	mvp_mat *= arm_model;
 	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 	glDrawArrays(GL_TRIANGLES, 72, 36);
@@ -1307,7 +1253,7 @@ void special(int key, int x, int y)
 					camera_height++;
 					if (camera_height > 20) camera_height = 20;
 				}
-				else
+				else if (release)
 					rotate();
 				break;
 
@@ -1316,7 +1262,7 @@ void special(int key, int x, int y)
 					camera_height--;
 					if (camera_height < 1) camera_height = 1;
 				}
-				else
+				else if (release)
 					movetile(vec2(0,-1));
 				break;
 
@@ -1325,7 +1271,7 @@ void special(int key, int x, int y)
 					camera_angle -= 0.1;
 					if (camera_angle < 0) camera_angle += 2*M_PI;
 				}
-				else
+				else if (release)
 					movetile(vec2(-1,0));
 				break;
 
@@ -1334,7 +1280,7 @@ void special(int key, int x, int y)
 					camera_angle += 0.1;
 					if (camera_angle > 2*M_PI) camera_angle -= 2*M_PI;
 				}
-				else
+				else if (release)
 					movetile(vec2(1,0));
 				break;
 		}
@@ -1359,20 +1305,44 @@ void keyboard(unsigned char key, int x, int y)
 			restart();
 			break;
 		case 'a':
-			arm_theta -= 5;
+			if (endgame) break;
+			arm_theta -= 3;
 			if (arm_theta < -90) arm_theta = -90;
+			if (!release) {
+				updatetileposition();
+				changetilecolour(collisioncheck());
+			}
 			break;
 		case 'd':
-			arm_theta += 5;
+			if (endgame) break;
+			arm_theta += 3;
 			if (arm_theta > 90) arm_theta = 90;
+			if (!release) {
+				updatetileposition();
+				changetilecolour(collisioncheck());
+			}
 			break;
 		case 'w':
-			arm_phi += 5;
+			if (endgame) break;
+			arm_phi += 3;
 			if (arm_phi > 180) arm_phi = 180;
+			if (!release) {
+				updatetileposition();
+				changetilecolour(collisioncheck());
+			}
 			break;
 		case 's':
-			arm_phi -= 5;
+			if (endgame) break;
+			arm_phi -= 3;
 			if (arm_phi < -80) arm_phi = -80;
+			if (!release) {
+				updatetileposition();
+				changetilecolour(collisioncheck());
+			}
+			break;
+		case ' ':
+			if (endgame || release) break;
+			releasetile();
 			break;
 	}
 	glutPostRedisplay();
@@ -1403,7 +1373,7 @@ int main(int argc, char **argv)
 	glutSpecialFunc(special);
 	glutKeyboardFunc(keyboard);
 	glutIdleFunc(idle);
-	glutTimerFunc(700, timer, 0);
+	glutTimerFunc(100, timer, 0);
 
 	glutMainLoop(); // Start main loop
 	return 0;
