@@ -116,12 +116,14 @@ GLuint mvp;
 // 1	- current piece
 // 2 	- board
 // 4 	- robot arm
-GLuint vaoIDs[4]; // One VAO for each object: the grid, the board, the current piece
+// 5 	- on-screen timer
+GLuint vaoIDs[5]; // One VAO for each object: the grid, the board, the current piece
 // 0 to 1	- grid
 // 2 to 3	- current piece
 // 4 to 5 	- board
 // 6 to 7 	- robot arm
-GLuint vboIDs[8]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
+// 8 to 9 	- on-screen timer
+GLuint vboIDs[10]; // Two Vertex Buffer Objects for each VAO (specifying vertex positions and colours, respectively)
 
 // trigger to pause game when it ends
 bool endgame;
@@ -243,7 +245,7 @@ void updatetileposition() {
 
 // Translate(-7.0, -9.0, 0) *
 	// perform transformation similar to when displaying second robot arm
-	tile_position = RotateZ(90-arm_theta) *
+	tile_position = Translate(-3, 0, 0) * RotateZ(90-arm_theta) *
 		Translate(11, 0, 0) * RotateZ(arm_phi-90) * tile_position;
 
 	// keep the x and y components
@@ -551,6 +553,114 @@ void initRobotArm() {
 	glEnableVertexAttribArray(vColor);
 }
 
+vec4* generateNumberPoints() {
+	vec4 *res = new vec4[42];
+	// top line
+	res[0] = vec4(0, 48, 0, 1);
+	res[1] = vec4(24, 44, 0, 1);
+	res[2] = vec4(24, 48, 0, 1);
+	res[3] = vec4(0, 44, 0, 1);
+	res[4] = vec4(24, 44, 0, 1);
+	res[5] = vec4(0, 48, 0, 1);
+	// middle line
+	res[6] = vec4(0, 26, 0, 1);
+	res[7] = vec4(24, 22, 0, 1);
+	res[8] = vec4(24, 26, 0, 1);
+	res[9] = vec4(0, 22, 0, 1);
+	res[10] = vec4(24, 22, 0, 1);
+	res[11] = vec4(0, 26, 0, 1);
+	// bottom line
+	res[12] = vec4(0, 4, 0, 1);
+	res[13] = vec4(24, 0, 0, 1);
+	res[14] = vec4(24, 4, 0, 1);
+	res[15] = vec4(0, 0, 0, 1);
+	res[16] = vec4(24, 0, 0, 1);
+	res[17] = vec4(0, 4, 0, 1);
+
+	// top left line
+	res[18] = vec4(0, 48, 0, 1);
+	res[19] = vec4(4, 22, 0, 1);
+	res[20] = vec4(4, 48, 0, 1);
+	res[21] = vec4(0, 48, 0, 1);
+	res[22] = vec4(0, 22, 0, 1);
+	res[23] = vec4(4, 22, 0, 1);
+	// top left line
+	res[24] = vec4(20, 48, 0, 1);
+	res[25] = vec4(24, 22, 0, 1);
+	res[26] = vec4(24, 48, 0, 1);
+	res[27] = vec4(20, 48, 0, 1);
+	res[28] = vec4(20, 22, 0, 1);
+	res[29] = vec4(24, 22, 0, 1);
+	// bottom left line
+	res[30] = vec4(0, 26, 0, 1);
+	res[31] = vec4(4, 0, 0, 1);
+	res[32] = vec4(4, 26, 0, 1);
+	res[33] = vec4(0, 26, 0, 1);
+	res[34] = vec4(0, 0, 0, 1);
+	res[35] = vec4(4, 0, 0, 1);
+	// bottom left line
+	res[36] = vec4(20, 26, 0, 1);
+	res[37] = vec4(24, 0, 0, 1);
+	res[38] = vec4(24, 26, 0, 1);
+	res[39] = vec4(20, 26, 0, 1);
+	res[40] = vec4(20, 0, 0, 1);
+	res[41] = vec4(24, 0, 0, 1);
+
+	return res;
+}
+
+void initTimer() {
+	glBindVertexArray(vaoIDs[4]);
+	glGenBuffers(2, &vboIDs[8]);
+
+	// two integers (84 points)
+	// each number is 24 by 48
+	// each line is 4 pixels wide
+	// gap between numbers is 10
+	// borders extend by 5 each side
+
+	vec4 points[90];
+	vec4 colours[90];
+	vec4 *temp = generateNumberPoints();
+	vec4 translate;
+
+	// background points
+	points[0] = vec4(68, 0, 0, 1);
+	points[1] = vec4(0, 58, 0, 1);
+	points[2] = vec4(0, 0, 0, 1);
+	points[3] = vec4(68, 0, 0, 1);
+	points[4] = vec4(68, 58, 0, 1);
+	points[5] = vec4(0, 58, 0, 1);
+
+	// number points
+	for (int i = 0; i < 44; i++) {
+		translate = temp[i];
+		translate[0] += 5;
+		translate[1] += 5;
+		points[6 + i] = translate;
+
+		translate = temp[i];
+		translate[0] += 34;
+		translate[1] += 5;
+		points[6 + 2*i] = translate;
+	}
+	delete temp;
+
+	// start off with black
+	for (int i = 0; i < 90; i++)
+		colours[i] = black;
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[8]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4)*90, points, GL_STATIC_DRAW);
+	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vPosition);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[9]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4)*90, colours, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vColor);
+}
+
 void init()
 {
 	srand(time(NULL));		// seed the rand() function
@@ -571,6 +681,7 @@ void init()
 	initBoard();
 	initCurrentTile();
 	initRobotArm();
+	initTimer();
 
 	// The location of the uniform variables in the shader program
 	locxsize = glGetUniformLocation(program, "xsize"); 
@@ -1105,46 +1216,50 @@ void timer(int value) {
 		endgame = true;
 		greyboard();
 	}
-	// if no top out, continue the game
-	if ( release_timer >= 7 && release && !endgame && !movetile(vec2(0,-1)) ) {
-		settile();
-
-		// if no partial lock out, check for completed rows, then create a new tile
-		if (!endgame) {	
-			// tag fruits for deletion after checkfullrow()
-			tagfruits();
-
-			// record which rows to check
-			bool checkrow[4] = {false, false, false, false};
-			for (int i = 0; i < 4; i++) {
-				if (tile[i][1] == 1)
-					checkrow[0] = true;
-				else if (tile[i][1] == 0)
-					checkrow[1] = true;
-				else if (tile[i][1] == -1)
-					checkrow[2] = true;
-				else
-					checkrow[3] = true;
-			}
-			// use checkfullrow(), starting with the topmost block filled
-			for (int i = 0; i < 4; i++) {
-				if (checkrow[i])
-					checkfullrow(tilepos[1] + 1 - i);
-			}
-			// tag fruits again after blocks were moved by checkfullrow()
-			tagfruits();
-			deletetags();
-
-			release = false;
-
-			newtile();
-		}
-		
+	
+	// if the block has been released and 7 milliseconds have elapsed
+	if ( release_timer >= 7) {
 		release_timer = 0;
+		// if no top out, continue the game
+		if ( !endgame && !movetile(vec2(0,-1)) ) {
+			settile();
+			second_timer = 600;
+
+			// if no partial lock out, check for completed rows, then create a new tile
+			if (!endgame) {	
+				// tag fruits for deletion after checkfullrow()
+				tagfruits();
+
+				// record which rows to check
+				bool checkrow[4] = {false, false, false, false};
+				for (int i = 0; i < 4; i++) {
+					if (tile[i][1] == 1)
+						checkrow[0] = true;
+					else if (tile[i][1] == 0)
+						checkrow[1] = true;
+					else if (tile[i][1] == -1)
+						checkrow[2] = true;
+					else
+						checkrow[3] = true;
+				}
+				// use checkfullrow(), starting with the topmost block filled
+				for (int i = 0; i < 4; i++) {
+					if (checkrow[i])
+						checkfullrow(tilepos[1] + 1 - i);
+				}
+				// tag fruits again after blocks were moved by checkfullrow()
+				tagfruits();
+				deletetags();
+
+				release = false;
+
+				newtile();
+			}
+		}
 	}
 
 	if (release) release_timer++;
-	second_timer--;
+	else second_timer--;
 
 	glutPostRedisplay();
 	glutTimerFunc(100, timer, 0);
@@ -1224,6 +1339,11 @@ void display()
 	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 	glDrawArrays(GL_TRIANGLES, 72, 36);
 
+	// release timer
+	mvp_mat = Translate(0, 0, -3.0);
+	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
+	glDrawArrays(GL_TRIANGLES, 0, 90);
+
 	glutSwapBuffers();
 }
 
@@ -1253,8 +1373,7 @@ void special(int key, int x, int y)
 					camera_height++;
 					if (camera_height > 20) camera_height = 20;
 				}
-				else if (release)
-					rotate();
+				else if (!release) rotate();
 				break;
 
 			case GLUT_KEY_DOWN:
@@ -1271,8 +1390,6 @@ void special(int key, int x, int y)
 					camera_angle -= 0.1;
 					if (camera_angle < 0) camera_angle += 2*M_PI;
 				}
-				else if (release)
-					movetile(vec2(-1,0));
 				break;
 
 			case GLUT_KEY_RIGHT:
@@ -1280,8 +1397,6 @@ void special(int key, int x, int y)
 					camera_angle += 0.1;
 					if (camera_angle > 2*M_PI) camera_angle -= 2*M_PI;
 				}
-				else if (release)
-					movetile(vec2(1,0));
 				break;
 		}
 	}
