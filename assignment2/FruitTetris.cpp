@@ -82,6 +82,7 @@ vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0);
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
 vec4 grey 	= 	vec4(0.5, 0.5, 0.5, 1.0);
+vec4 darkgrey = vec4(0.05, 0.05, 0.05, 1.0);
 
 vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
 vec4 translucent = vec4(1.0, 1.0, 1.0, 0.2);
@@ -141,7 +142,6 @@ float arm_phi = 90;
 
 // used to determine whether the current tile is released from the arm
 bool release;
-int release_timer;
 
 int second_timer;
 
@@ -553,112 +553,92 @@ void initRobotArm() {
 	glEnableVertexAttribArray(vColor);
 }
 
-vec4* generateNumberPoints() {
-	vec4 *res = new vec4[42];
-	// top line
-	res[0] = vec4(0, 48, 0, 1);
-	res[1] = vec4(24, 44, 0, 1);
-	res[2] = vec4(24, 48, 0, 1);
-	res[3] = vec4(0, 44, 0, 1);
-	res[4] = vec4(24, 44, 0, 1);
-	res[5] = vec4(0, 48, 0, 1);
-	// middle line
-	res[6] = vec4(0, 26, 0, 1);
-	res[7] = vec4(24, 22, 0, 1);
-	res[8] = vec4(24, 26, 0, 1);
-	res[9] = vec4(0, 22, 0, 1);
-	res[10] = vec4(24, 22, 0, 1);
-	res[11] = vec4(0, 26, 0, 1);
-	// bottom line
-	res[12] = vec4(0, 4, 0, 1);
-	res[13] = vec4(24, 0, 0, 1);
-	res[14] = vec4(24, 4, 0, 1);
-	res[15] = vec4(0, 0, 0, 1);
-	res[16] = vec4(24, 0, 0, 1);
-	res[17] = vec4(0, 4, 0, 1);
-
-	// top left line
-	res[18] = vec4(0, 48, 0, 1);
-	res[19] = vec4(4, 22, 0, 1);
-	res[20] = vec4(4, 48, 0, 1);
-	res[21] = vec4(0, 48, 0, 1);
-	res[22] = vec4(0, 22, 0, 1);
-	res[23] = vec4(4, 22, 0, 1);
-	// top left line
-	res[24] = vec4(20, 48, 0, 1);
-	res[25] = vec4(24, 22, 0, 1);
-	res[26] = vec4(24, 48, 0, 1);
-	res[27] = vec4(20, 48, 0, 1);
-	res[28] = vec4(20, 22, 0, 1);
-	res[29] = vec4(24, 22, 0, 1);
-	// bottom left line
-	res[30] = vec4(0, 26, 0, 1);
-	res[31] = vec4(4, 0, 0, 1);
-	res[32] = vec4(4, 26, 0, 1);
-	res[33] = vec4(0, 26, 0, 1);
-	res[34] = vec4(0, 0, 0, 1);
-	res[35] = vec4(4, 0, 0, 1);
-	// bottom left line
-	res[36] = vec4(20, 26, 0, 1);
-	res[37] = vec4(24, 0, 0, 1);
-	res[38] = vec4(24, 26, 0, 1);
-	res[39] = vec4(20, 26, 0, 1);
-	res[40] = vec4(20, 0, 0, 1);
-	res[41] = vec4(24, 0, 0, 1);
-
-	return res;
-}
-
 void initTimer() {
 	glBindVertexArray(vaoIDs[4]);
 	glGenBuffers(2, &vboIDs[8]);
 
-	// two integers (84 points)
+	// background = 6 points
+	// three digits, one decimal = 132 points (42 + 42 + 42 + 6)
 	// each number is 24 by 48
 	// each line is 4 pixels wide
-	// gap between numbers is 10
+	// gap between numbers is 5
 	// borders extend by 5 each side
 
-	vec4 points[90];
-	vec4 colours[90];
-	vec4 *temp = generateNumberPoints();
+	vec4 points[138];
+	vec4 colours[138];
+	vec4 temp[42];
 	vec4 translate;
 
+	// top line
+	temp[0] = vec4(4, 48, 0, 1); temp[1] = vec4(20, 44, 0, 1); temp[2] = vec4(20, 48, 0, 1);
+	temp[3] = vec4(4, 44, 0, 1); temp[4] = vec4(20, 44, 0, 1); temp[5] = vec4(4, 48, 0, 1);
+	// middle line
+	temp[6] = vec4(4, 26, 0, 1); temp[7] = vec4(20, 22, 0, 1); temp[8] = vec4(20, 26, 0, 1);
+	temp[9] = vec4(4, 22, 0, 1); temp[10] = vec4(20, 22, 0, 1); temp[11] = vec4(4, 26, 0, 1);
+	// bottom line
+	temp[12] = vec4(4, 4, 0, 1); temp[13] = vec4(20, 0, 0, 1); temp[14] = vec4(20, 4, 0, 1);
+	temp[15] = vec4(4, 0, 0, 1); temp[16] = vec4(20, 0, 0, 1); temp[17] = vec4(4, 4, 0, 1);
+
+	// top left line
+	temp[18] = vec4(0, 44, 0, 1); temp[19] = vec4(4, 26, 0, 1); temp[20] = vec4(4, 44, 0, 1);
+	temp[21] = vec4(0, 44, 0, 1); temp[22] = vec4(0, 26, 0, 1); temp[23] = vec4(4, 26, 0, 1);
+	// top right line
+	temp[24] = vec4(20, 44, 0, 1); temp[25] = vec4(24, 26, 0, 1); temp[26] = vec4(24, 44, 0, 1);
+	temp[27] = vec4(20, 44, 0, 1); temp[28] = vec4(20, 26, 0, 1); temp[29] = vec4(24, 26, 0, 1);
+	// bottom left line
+	temp[30] = vec4(0, 22, 0, 1); temp[31] = vec4(4, 4, 0, 1); temp[32] = vec4(4, 22, 0, 1);
+	temp[33] = vec4(0, 22, 0, 1); temp[34] = vec4(0, 4, 0, 1); temp[35] = vec4(4, 4, 0, 1);
+	// bottom right line
+	temp[36] = vec4(20, 22, 0, 1); temp[37] = vec4(24, 4, 0, 1); temp[38] = vec4(24, 22, 0, 1);
+	temp[39] = vec4(20, 22, 0, 1); temp[40] = vec4(20, 4, 0, 1); temp[41] = vec4(24, 4, 0, 1);
+
 	// background points
-	points[0] = vec4(68, 0, 0, 1);
-	points[1] = vec4(0, 58, 0, 1);
-	points[2] = vec4(0, 0, 0, 1);
-	points[3] = vec4(68, 0, 0, 1);
-	points[4] = vec4(68, 58, 0, 1);
-	points[5] = vec4(0, 58, 0, 1);
+	points[0] = vec4(0, 0, 0, 1);
+	points[1] = vec4(0, -58, 0, 1);
+	points[2] = vec4(101, 0, 0, 1);
+	points[3] = vec4(0, -58, 0, 1);
+	points[4] = vec4(101, -58, 0, 1);
+	points[5] = vec4(101, 0, 0, 1);
+
+	// decimal points
+	points[132] = vec4(73, -53, -0.1, 1);
+	points[133] = vec4(77, -53, -0.1, 1);
+	points[134] = vec4(73, -49, -0.1, 1);
+	points[135] = vec4(73, -49, -0.1, 1);
+	points[136] = vec4(77, -53, -0.1, 1);
+	points[137] = vec4(77, -49, -0.1, 1);
 
 	// number points
-	for (int i = 0; i < 44; i++) {
-		translate = temp[i];
-		translate[0] += 5;
-		translate[1] += 5;
+	for (int i = 0; i < 42; i++) {
+		translate = Translate(5, -53, -0.1) * temp[i];
 		points[6 + i] = translate;
 
-		translate = temp[i];
-		translate[0] += 34;
-		translate[1] += 5;
-		points[6 + 2*i] = translate;
-	}
-	delete temp;
+		translate = Translate(34, -53, -0.1) * temp[i];
+		points[48 + i] = translate;
 
-	// start off with black
-	for (int i = 0; i < 90; i++)
-		colours[i] = black;
+		translate = Translate(72, -53, -0.1) * temp[i];
+		points[90 + i] = translate;
+	}
+
+	// start off with dark grey
+	for (int i = 0; i < 132; i++)
+		colours[i] = darkgrey;
+
+	// decimal is always white
+	for (int i = 132; i < 138; i++)
+		colours[i] = white;
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[8]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4)*90, points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4)*138, points, GL_STATIC_DRAW);
 	glVertexAttribPointer(vPosition, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[9]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4)*90, colours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vec4)*138, colours, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vColor);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void init()
@@ -691,7 +671,6 @@ void init()
 	// Game initialization
 	endgame = false;
 	release = false;
-	release_timer = 0;
 	second_timer = 600;
 	newtile(); // create new next tile
 
@@ -1141,17 +1120,10 @@ void rotate()
 		i -= 4;
 
 	// copy arrays
-	vec2 oldorientation[4];
-	for (j = 0; j < 4; j++) {
-		oldorientation[j] = tile[j];
+	for (int j = 0; j < 4; j++)
 		tile[j] = AllRotations[i][j];
-	}
 
-	// check if anything obstructs the rotation
-	if ( !movetile(vec2(0,0)) ) {
-		for (j = 0; j < 4; j++)
-			tile[j] = oldorientation[j];
-	}
+	updatetile();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -1166,11 +1138,10 @@ bool collisioncheck() {
 		int y = rounded_y + (int)tile[i][1];
 
 		// check for out-of-bounds
-		if ( x < 0 || x > 10 || y < 0 || y > 20)
+		if ( x < 0 || x > 9 || y < 0 || y > 19)
 			return true;
-
 		// check for collision with existing board element
-		if ( board[x][y] )
+		else if ( board[x][y] )
 			return true;
 	}
 	
@@ -1199,6 +1170,7 @@ void changetilecolour(bool collision) {
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// checks if current tile is in a valid position, then releases it
 void releasetile() {
 	if ( collisioncheck() ) return;
 	tilepos[0] = round(tilepos[0]);
@@ -1210,7 +1182,73 @@ void releasetile() {
 
 //-------------------------------------------------------------------------------------------------------------------
 
+void refreshTimer() {
+	vec4 colours[126];
+	int digits[3];
+
+	digits[0] = second_timer / 100;
+	digits[1] = (second_timer / 10) % 10;
+	digits[2] = (second_timer % 100) % 10;
+
+	// set default colour
+	for (int i = 0; i < 126; i++)
+		colours[i] = darkgrey;
+
+	// create numbers
+	for (int i = 0; i < 3; i++) {
+		// top line
+		if (digits[i] != 1 && digits[i] != 4) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j] = white;
+		}
+
+		// middle line
+		if (digits[i] != 0 && digits[i] != 1 && digits[i] != 7) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j + 6] = white;
+		}
+
+		// bottom line
+		if (digits[i] != 1 && digits[i] != 4 && digits[i] != 7) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j + 12] = white;
+		}
+
+		// top left line
+		if (digits[i] != 1 && digits[i] != 2 && digits[i] != 3 && digits[i] != 7) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j+ 18] = white;
+		}
+
+		// top right line
+		if (digits[i] != 5 && digits[i] != 6) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j + 24] = white;
+		}
+
+		// bottom left line
+		if (digits[i] == 0 || digits[i] == 2 || digits[i] == 6 || digits[i] == 8) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j + 30] = white;
+		}
+
+		// bottom right line
+		if (digits[i] != 2) {
+			for (int j = 0; j < 6; j++)
+				colours[42*i + j + 36] = white;
+		}
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[9]);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vec4)*6, sizeof(vec4)*126, colours);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 void timer(int value) {
+	refreshTimer();
+
 	// if time has run out, end the game
 	if ( second_timer <= 0 ) {
 		endgame = true;
@@ -1218,12 +1256,12 @@ void timer(int value) {
 	}
 	
 	// if the block has been released and 7 milliseconds have elapsed
-	if ( release_timer >= 7) {
-		release_timer = 0;
+	if ( release ) {
+		second_timer = 600;
+
 		// if no top out, continue the game
 		if ( !endgame && !movetile(vec2(0,-1)) ) {
 			settile();
-			second_timer = 600;
 
 			// if no partial lock out, check for completed rows, then create a new tile
 			if (!endgame) {	
@@ -1258,8 +1296,8 @@ void timer(int value) {
 		}
 	}
 
-	if (release) release_timer++;
-	else second_timer--;
+	if (!release)
+		second_timer--;
 
 	glutPostRedisplay();
 	glutTimerFunc(100, timer, 0);
@@ -1274,7 +1312,6 @@ void restart()
 
 	endgame = false;
 	release = false;
-	release_timer = 0;
 	second_timer = 60;
 
 	newtile();
@@ -1340,7 +1377,8 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 72, 36);
 
 	// release timer
-	mvp_mat = Translate(0, 0, -3.0);
+	glBindVertexArray(vaoIDs[4]);
+	mvp_mat = Translate(-0.95, 0.95, 0) * Scale(2.0/xsize, 2.0/ysize, 1);
 	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
 	glDrawArrays(GL_TRIANGLES, 0, 90);
 
@@ -1373,7 +1411,10 @@ void special(int key, int x, int y)
 					camera_height++;
 					if (camera_height > 20) camera_height = 20;
 				}
-				else if (!release) rotate();
+				else if (!release) {
+					rotate();
+					changetilecolour(collisioncheck());
+				}
 				break;
 
 			case GLUT_KEY_DOWN:
