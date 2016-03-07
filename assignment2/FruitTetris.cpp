@@ -82,7 +82,7 @@ vec4 orange = 	vec4(1.0, 0.5, 0.0, 1.0);
 vec4 white  = 	vec4(1.0, 1.0, 1.0, 1.0);
 vec4 black  = 	vec4(0.0, 0.0, 0.0, 1.0);
 vec4 grey 	= 	vec4(0.5, 0.5, 0.5, 1.0);
-vec4 darkgrey = vec4(0.05, 0.05, 0.05, 1.0);
+vec4 darkgrey = vec4(0.1, 0.1, 0.1, 1.0);
 
 vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
 vec4 translucent = vec4(1.0, 1.0, 1.0, 0.2);
@@ -567,7 +567,6 @@ void initTimer() {
 	vec4 points[138];
 	vec4 colours[138];
 	vec4 temp[42];
-	vec4 translate;
 
 	// top line
 	temp[0] = vec4(4, 48, 0, 1); temp[1] = vec4(20, 44, 0, 1); temp[2] = vec4(20, 48, 0, 1);
@@ -601,23 +600,18 @@ void initTimer() {
 	points[5] = vec4(101, 0, 0, 1);
 
 	// decimal points
-	points[132] = vec4(73, -53, -0.1, 1);
-	points[133] = vec4(77, -53, -0.1, 1);
-	points[134] = vec4(73, -49, -0.1, 1);
-	points[135] = vec4(73, -49, -0.1, 1);
-	points[136] = vec4(77, -53, -0.1, 1);
-	points[137] = vec4(77, -49, -0.1, 1);
+	points[132] = vec4(63, -53, -0.1, 1);
+	points[133] = vec4(67, -53, -0.1, 1);
+	points[134] = vec4(63, -49, -0.1, 1);
+	points[135] = vec4(63, -49, -0.1, 1);
+	points[136] = vec4(67, -53, -0.1, 1);
+	points[137] = vec4(67, -49, -0.1, 1);
 
 	// number points
 	for (int i = 0; i < 42; i++) {
-		translate = Translate(5, -53, -0.1) * temp[i];
-		points[6 + i] = translate;
-
-		translate = Translate(34, -53, -0.1) * temp[i];
-		points[48 + i] = translate;
-
-		translate = Translate(72, -53, -0.1) * temp[i];
-		points[90 + i] = translate;
+		points[6 + i] = Translate(5, -53, -0.1) * temp[i];
+		points[48 + i] = Translate(34, -53, -0.1) * temp[i];
+		points[90 + i] = Translate(72, -53, -0.1) * temp[i];
 	}
 
 	// start off with dark grey
@@ -671,7 +665,7 @@ void init()
 	// Game initialization
 	endgame = false;
 	release = false;
-	second_timer = 600;
+	second_timer = 100;
 	newtile(); // create new next tile
 
 	// set to default
@@ -1249,15 +1243,19 @@ void refreshTimer() {
 void timer(int value) {
 	refreshTimer();
 
-	// if time has run out, end the game
+	// if time has run out, release the tile if possible, otherwise end the game
 	if ( second_timer <= 0 ) {
-		endgame = true;
-		greyboard();
+		if ( !collisioncheck() )
+			releasetile();
+		else {
+			endgame = true;
+			greyboard();
+		}
 	}
 	
 	// if the block has been released and 7 milliseconds have elapsed
 	if ( release ) {
-		second_timer = 600;
+		second_timer = 100;
 
 		// if no top out, continue the game
 		if ( !endgame && !movetile(vec2(0,-1)) ) {
@@ -1296,7 +1294,7 @@ void timer(int value) {
 		}
 	}
 
-	if (!release)
+	if (!release && !endgame)
 		second_timer--;
 
 	glutPostRedisplay();
@@ -1312,7 +1310,10 @@ void restart()
 
 	endgame = false;
 	release = false;
-	second_timer = 60;
+	second_timer = 100;
+	
+	arm_theta = 30;
+	arm_phi = 90;
 
 	newtile();
 }
@@ -1380,7 +1381,7 @@ void display()
 	glBindVertexArray(vaoIDs[4]);
 	mvp_mat = Translate(-0.95, 0.95, 0) * Scale(2.0/xsize, 2.0/ysize, 1);
 	glUniformMatrix4fv(mvp, 1, GL_TRUE, mvp_mat);
-	glDrawArrays(GL_TRIANGLES, 0, 90);
+	glDrawArrays(GL_TRIANGLES, 0, 138);
 
 	glutSwapBuffers();
 }
