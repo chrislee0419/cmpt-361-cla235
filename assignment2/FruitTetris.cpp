@@ -258,6 +258,28 @@ void updatetileposition() {
 
 //-------------------------------------------------------------------------------------------------------------------
 
+// returns true if current tile is out-of-bounds or overlapping a board block
+bool collisioncheck() {
+	int rounded_x = (int)round(tilepos[0]);
+	int rounded_y = (int)round(tilepos[1]);
+	
+	for (int i = 0; i < 4; i++) {
+		int x = rounded_x + (int)tile[i][0];
+		int y = rounded_y + (int)tile[i][1];
+
+		// check for out-of-bounds
+		if ( x < 0 || x > 9 || y < 0 || y > 19)
+			return true;
+		// check for collision with existing board element
+		else if ( board[x][y] )
+			return true;
+	}
+	
+	return false;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+
 // Called at the start of play and every time a tile is placed
 void newtile()
 {
@@ -267,14 +289,22 @@ void newtile()
 
 	// Update the color VBO of current tile
 	vec4 blockcolour;
+	vec4 greyblock[144];
 	for (int i = 0; i < 144; i+=36) {
 		blockcolour = allColours[rand() % 5];
-		for (int j = i; j < i+36; j++)
+		for (int j = i; j < i+36; j++) {
 			tilecol[j] = blockcolour;
+			greyblock[j] = grey;
+		}
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboIDs[3]); // Bind the VBO containing current tile vertex colours
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tilecol), tilecol); // Put the colour data in the VBO
+	
+	if ( !collisioncheck() )
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tilecol), tilecol); // Put the colour data in the VBO
+	else
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec4)*144, greyblock);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
@@ -1122,28 +1152,6 @@ void rotate()
 
 //-------------------------------------------------------------------------------------------------------------------
 
-// returns true if current tile is out-of-bounds or overlapping a board block
-bool collisioncheck() {
-	int rounded_x = (int)round(tilepos[0]);
-	int rounded_y = (int)round(tilepos[1]);
-	
-	for (int i = 0; i < 4; i++) {
-		int x = rounded_x + (int)tile[i][0];
-		int y = rounded_y + (int)tile[i][1];
-
-		// check for out-of-bounds
-		if ( x < 0 || x > 9 || y < 0 || y > 19)
-			return true;
-		// check for collision with existing board element
-		else if ( board[x][y] )
-			return true;
-	}
-	
-	return false;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-
 // changes the colour of the current tile depending on if there is a collision
 void changetilecolour(bool collision) {
 	vec4 colour[144];
@@ -1311,7 +1319,7 @@ void restart()
 	endgame = false;
 	release = false;
 	second_timer = 100;
-	
+
 	arm_theta = 30;
 	arm_phi = 90;
 
