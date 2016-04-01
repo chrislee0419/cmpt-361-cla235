@@ -13,7 +13,21 @@
  * stored in the "hit" variable
  **********************************************************************/
 float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
-	return 0.0;
+  float a = pow(vec_len(u), 2);
+  float b = 2 * (vec_dot(u, get_vec(sph->center, o)));
+  float c = pow(vec_len(get_vec(sph->center, o)), 2) - pow(sph->radius, 2);
+
+  float discrim = pow(b, 2) - 4 * a * c;
+  if ( discrim < 0 )
+    return -1.0;
+
+  float sqrt_dis = sqrt(discrim);
+  float _b = -b/2;
+  float res;
+  if ( (res = (_b - sqrt_dis)) >= 0)
+    return res;
+  else
+    return _b + sqrt_dis;
 }
 
 /*********************************************************************
@@ -22,10 +36,19 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
  * which arguments to use for the function. For exmaple, note that you
  * should return the point of intersection to the calling function.
  **********************************************************************/
-Spheres *intersect_scene() {
-//
-// do your thing here
-//
+Spheres *intersect_scene(Point o, Vector u, Spheres *scene) {
+  Spheres *sph = scene;
+  Point closest_hit;
+  float min = -1;
+
+  while (sph->next != NULL)
+  {
+    Point *hit;
+    float intersect = intersect_sphere(o, u, sph, hit);
+
+
+    sph = sph->next;
+  }
 
 	return NULL;
 }
