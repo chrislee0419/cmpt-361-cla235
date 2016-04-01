@@ -38,6 +38,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
  **********************************************************************/
 Spheres *intersect_scene(Point o, Vector u, Spheres *scene) {
   Spheres *sph = scene;
+  Spheres *closest_sph = NULL;
   Point closest_hit;
   float min = -1;
 
@@ -46,11 +47,16 @@ Spheres *intersect_scene(Point o, Vector u, Spheres *scene) {
     Point *hit;
     float intersect = intersect_sphere(o, u, sph, hit);
 
+    if (intersect < min)
+    {
+      min = intersect;
+      closest_sph = sph;
+    }
 
     sph = sph->next;
   }
 
-	return NULL;
+	return closest_sph;
 }
 
 /*****************************************************

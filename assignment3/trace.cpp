@@ -54,11 +54,19 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
-RGB_float recursive_ray_trace() {
-//
-// do your thing here
-//
-	RGB_float color;
+RGB_float recursive_ray_trace(Point origin, Vector ray) {
+	RGB_float color = background_clr;
+
+  Spheres *sph = intersect_scene(origin, ray, scene);
+  if (sph != NULL)
+  {
+    printf("not null\n");
+    color.r = 1.0;
+    color.g = 0.0;
+    color.b = 1.0;
+  }
+
+
 	return color;
 }
 
@@ -93,7 +101,7 @@ void ray_trace() {
       // You need to change this!!!
       //
       // ret_color = recursive_ray_trace();
-      ret_color = background_clr; // just background for now
+      ret_color = recursive_ray_trace(cur_pixel_pos, ray);
 
       // Parallel rays can be cast instead using below
       //
