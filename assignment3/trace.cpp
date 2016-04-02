@@ -41,13 +41,42 @@ extern int step_max;
 
 /*********************************************************************
  * Phong illumination - you need to implement this!
+ * q = point on surface
+ * v = vector from view to point q
+ * n = normal vector of point q
+ * sph = sphere containing point q
  *********************************************************************/
-RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
-//
-// do your thing here
-//
-	RGB_float color;
-	return color;
+RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
+	RGB_float final_colour, glo_amb, amb, spec, dif;
+  Vector l, r;
+
+  // vector setup
+  l = get_vec(light1, q);
+  normalize(&l);
+  normalize(&v);
+  normalize(&n);
+  r = vec_minus(vec_scale(n, 2*vec_dot(n, l)), l);
+  normalize(&r);
+
+  amb.r = sph->mat_ambient[0] * light1_intensity[0];
+  amb.g = sph->mat_ambient[1] * light1_intensity[1];
+  amb.b = sph->mat_ambient[2] * light1_intensity[2];
+
+  float n_dot_l = vec_dot(n, l);
+  dif.r = light1_intensity[0] * n_dot_l;
+  dif.g = light1_intensity[1] * n_dot_l;
+  dif.b = light1_intensity[2] * n_dot_l;
+
+  float v_dot_r = pow(vec_dot(v, r), sph->mat_shineness);
+  spec.r = light1_intensity[0] * v_dot_r;
+  spec.g = light1_intensity[1] * v_dot_r;
+  spec.b = light1_intensity[2] * v_dot_r;
+
+  final_colour.r = amb.r + dif.r + spec.r;
+  final_colour.g = amb.g + dif.g + spec.g;
+  final_colour.b = amb.b + dif.b + spec.b;
+
+	return final_colour;
 }
 
 /************************************************************************
@@ -55,20 +84,19 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point origin, Vector ray) {
-	RGB_float color;
+	RGB_float colour;
+  Point hit;
 
-  Spheres *sph = intersect_scene(origin, ray, scene);
+  Spheres *sph = intersect_scene(origin, ray, scene, &hit);
   if (sph != NULL)
   {
-    color.r = 1.0;
-    color.g = 1.0;
-    color.b = 1.0;
+    colour = phong(hit, get_vec(eye_pos, hit), sphere_normal(hit, sph), sph);
   }
   else
-    color = background_clr;
+    colour = background_clr;
 
 
-	return color;
+	return colour;
 }
 
 /*********************************************************************

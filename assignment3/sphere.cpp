@@ -53,7 +53,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
  * which arguments to use for the function. For exmaple, note that you
  * should return the point of intersection to the calling function.
  **********************************************************************/
-Spheres *intersect_scene(Point o, Vector u, Spheres *sph) {
+Spheres *intersect_scene(Point o, Vector u, Spheres *sph, Point *hit) {
   Spheres *closest_sph = NULL;
   Point closest_hit;
   float min = -1;
@@ -67,16 +67,13 @@ Spheres *intersect_scene(Point o, Vector u, Spheres *sph) {
     {
       min = intersect;
       closest_sph = sph;
+      closest_hit = hit;
     }
 
     sph = sph->next;
   }
 
-  // if (closest_sph == NULL)
-  //   printf("no hit\n");
-  // else
-  //   printf("hit\n");
-
+  *hit = closest_hit;
 	return closest_sph;
 }
 
