@@ -55,16 +55,17 @@ RGB_float phong(Point q, Vector v, Vector surf_norm, Spheres *sph) {
  * You should decide what arguments to use.
  ************************************************************************/
 RGB_float recursive_ray_trace(Point origin, Vector ray) {
-	RGB_float color = background_clr;
+	RGB_float color;
 
   Spheres *sph = intersect_scene(origin, ray, scene);
   if (sph != NULL)
   {
-    printf("not null\n");
     color.r = 1.0;
-    color.g = 0.0;
+    color.g = 1.0;
     color.b = 1.0;
   }
+  else
+    color = background_clr;
 
 
 	return color;
@@ -100,7 +101,6 @@ void ray_trace() {
       //
       // You need to change this!!!
       //
-      // ret_color = recursive_ray_trace();
       ret_color = recursive_ray_trace(cur_pixel_pos, ray);
 
       // Parallel rays can be cast instead using below
@@ -110,8 +110,8 @@ void ray_trace() {
       // ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
 // Checkboard for testing
-RGB_float clr = {float(i/32), 0, float(j/32)};
-ret_color = clr;
+//RGB_float clr = {float(i/32), 0, float(j/32)};
+//ret_color = clr;
 
       frame[i][j][0] = GLfloat(ret_color.r);
       frame[i][j][1] = GLfloat(ret_color.g);
