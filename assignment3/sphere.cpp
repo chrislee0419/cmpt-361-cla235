@@ -14,11 +14,10 @@
  * stored in the "hit" variable
  **********************************************************************/
 float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
-  Vector _u = u;
-  normalize(&_u);
+  normalize(&u);
   Vector v = get_vec(sph->center, o);
-  float a = pow(vec_len(_u), 2);
-  float b = 2 * (vec_dot(_u, v));
+  float a = pow(vec_len(u), 2);
+  float b = 2 * (vec_dot(u, v));
   float c = pow(vec_len(v), 2) - pow(sph->radius, 2);
 
   //printf("a = %f, b = %f, c = %f\n", a, b, c);
@@ -28,23 +27,26 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
     return -1.0;
 
   float sqrt_dis = sqrt(discrim);
-  float _b = -b/2;
+  float res1 = (-b + sqrt_dis)/(2 * a);
+  float res2 = (-b - sqrt_dis)/(2 * a);
   float res;
-  if ( (res = (_b - sqrt_dis)) >= 0)
+  if ( res1 >= 0 && res1 < res2 )
   {
+    res = res1;
     hit->x = o.x + res * u.x;
     hit->y = o.y + res * u.y;
     hit->z = o.z + res * u.z;
     return res;
   }
-  else
+  else if ( res2 >= 0 && res2 <= res1)
   {
-    res = _b + sqrt_dis;
+    res = res2;
     hit->x = o.x + res * u.x;
     hit->y = o.y + res * u.y;
     hit->z = o.z + res * u.z;
     return res;
   }
+  return -1.0;
 }
 
 /*********************************************************************

@@ -58,40 +58,42 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
   r = vec_minus(vec_scale(n, 2*vec_dot(n, l)), l);
   normalize(&r);
 
-  amb.r = sph->mat_ambient[0] * light1_intensity[0];
-  amb.g = sph->mat_ambient[1] * light1_intensity[1];
-  amb.b = sph->mat_ambient[2] * light1_intensity[2];
+  amb.r = sph->mat_ambient[0] * global_ambient[0];
+  amb.g = sph->mat_ambient[1] * global_ambient[1];
+  amb.b = sph->mat_ambient[2] * global_ambient[2];
 
   float dis = vec_len(get_vec(q, light1));
   float decay = 1.0 / (decay_a + decay_b*dis + decay_c*dis*dis);
 
   float n_dot_l = vec_dot(n, l);
   if (n_dot_l < 0.0)
-    n_dot_l = -n_dot_l;
-  dif.r = sph->mat_diffuse[0] * light1_intensity[0] * n_dot_l;
-  dif.g = sph->mat_diffuse[1] * light1_intensity[1] * n_dot_l;
-  dif.b = sph->mat_diffuse[2] * light1_intensity[2] * n_dot_l;
+    n_dot_l = 0.0;
+  dif.r = sph->mat_diffuse[0] * n_dot_l;
+  dif.g = sph->mat_diffuse[1] * n_dot_l;
+  dif.b = sph->mat_diffuse[2] * n_dot_l;
 
   float v_dot_r = pow(vec_dot(v, r), sph->mat_shineness);
   if (v_dot_r < 0.0)
-    v_dot_r = -v_dot_r;
-  spec.r = sph->mat_specular[0] * light1_intensity[0] * v_dot_r;
-  spec.g = sph->mat_specular[1] * light1_intensity[1] * v_dot_r;
-  spec.b = sph->mat_specular[2] * light1_intensity[2] * v_dot_r;
+    v_dot_r = 0.0;
+  spec.r = sph->mat_specular[0] * v_dot_r;
+  spec.g = sph->mat_specular[1] * v_dot_r;
+  spec.b = sph->mat_specular[2] * v_dot_r;
 
-  if (amb.r > 1.0 || amb.r < 0.0 || dif.r < 0.0 || dif.r > 1.0
-    || spec.r < 0.0 || spec.r > 1.0)
-    printf("red: a = %f, d = %f, s = %f\n", amb.r, dif.r, spec.r);
-  if (amb.g > 1.0 || amb.g < 0.0 || dif.g < 0.0 || dif.g > 1.0
-    || spec.g < 0.0 || spec.g > 1.0)
-    printf("grn: a = %f, d = %f, s = %f\n", amb.g, dif.g, spec.g);
-  if (amb.b > 1.0 || amb.b < 0.0 || dif.b < 0.0 || dif.b > 1.0
-    || spec.b < 0.0 || spec.b > 1.0)
-    printf("blu: a = %f, d = %f, s = %f\n", amb.b, dif.b, spec.b);
+  //if (amb.r > 1.0 || amb.r < 0.0 || dif.r < 0.0 || dif.r > 1.0
+  //  || spec.r < 0.0 || spec.r > 1.0)
+  //  printf("red: a = %f, d = %f, s = %f\n", amb.r, dif.r, spec.r);
+  //if (amb.g > 1.0 || amb.g < 0.0 || dif.g < 0.0 || dif.g > 1.0
+  //  || spec.g < 0.0 || spec.g > 1.0)
+  //  printf("grn: a = %f, d = %f, s = %f\n", amb.g, dif.g, spec.g);
+  //if (amb.b > 1.0 || amb.b < 0.0 || dif.b < 0.0 || dif.b > 1.0
+  //  || spec.b < 0.0 || spec.b > 1.0)
+  //  printf("blu: a = %f, d = %f, s = %f\n", amb.b, dif.b, spec.b);
 
-  final_colour.r = amb.r + decay * (dif.r + spec.r);
-  final_colour.g = amb.g + decay * (dif.g + spec.g);
-  final_colour.b = amb.b + decay * (dif.b + spec.b);
+  final_colour.r = amb.r + decay * light1_intensity[0] * (dif.r + spec.r);
+  final_colour.g = amb.g + decay * light1_intensity[1] * (dif.g + spec.g);
+  final_colour.b = amb.b + decay * light1_intensity[2] * (dif.b + spec.b);
+
+  printf("r = %f, g = %f, b = %f\n", final_colour.r, final_colour.g, final_colour.b);
 
 	return final_colour;
 }
@@ -114,9 +116,9 @@ RGB_float recursive_ray_trace(Point origin, Vector ray) {
 
     RGB_float phong_colour = phong(hit, get_vec(eye_pos, hit), sphere_normal(hit, sph), sph);
   
-    colour.r += glo_amb.r + phong_colour.r;
-    colour.g += glo_amb.g + phong_colour.g;
-    colour.b += glo_amb.b + phong_colour.b;
+    colour.r += phong_colour.r;
+    colour.g += phong_colour.g;
+    colour.b += phong_colour.b;
   }
   else
     colour = background_clr;
