@@ -35,6 +35,11 @@ extern float decay_b;
 extern float decay_c;
 
 extern int shadow_on;
+extern int reflect_on;
+extern int refract_on;
+extern int chess_on;
+extern int stochastic_on;
+extern int supersample_on;
 extern int step_max;
 
 /////////////////////////////////////////////////////////////////////
@@ -47,53 +52,43 @@ extern int step_max;
  * sph = sphere containing point q
  *********************************************************************/
 RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
-	RGB_float final_colour, glo_amb, amb, spec, dif;
-  Vector l, r;
+	RGB_float final_colour, amb, spec, dif;
+	Vector l, r;
 
-  // vector setup
-  l = get_vec(q, light1);
-  normalize(&l);
-  normalize(&v);
-  normalize(&n);
-  r = vec_minus(vec_scale(n, 2*vec_dot(n, l)), l);
-  normalize(&r);
+	// vector setup
+	l = get_vec(q, light1);
+	normalize(&l);
+	normalize(&v);
+	normalize(&n);
+	r = vec_minus(vec_scale(n, 2*vec_dot(n, l)), l);
+	normalize(&r);
 
-  amb.r = sph->mat_ambient[0] * global_ambient[0];
-  amb.g = sph->mat_ambient[1] * global_ambient[1];
-  amb.b = sph->mat_ambient[2] * global_ambient[2];
+	amb.r = sph->mat_ambient[0] * global_ambient[0];
+	amb.g = sph->mat_ambient[1] * global_ambient[1];
+	amb.b = sph->mat_ambient[2] * global_ambient[2];
 
-  float dis = vec_len(get_vec(q, light1));
-  float decay = 1.0 / (decay_a + decay_b*dis + decay_c*dis*dis);
+	float dis = vec_len(get_vec(q, light1));
+	float decay = 1.0 / (decay_a + decay_b*dis + decay_c*dis*dis);
+	float shadow = 1.0;
+	if (shadow_on == 1)
+	{
+		if (intersect_scene(q, l, scene, NULL, sph->index) != NULL)
+				shadow = 0.0;
+	}
 
-  float n_dot_l = vec_dot(n, l);
-  if (n_dot_l < 0.0)
-    n_dot_l = 0.0;
-  dif.r = sph->mat_diffuse[0] * n_dot_l;
-  dif.g = sph->mat_diffuse[1] * n_dot_l;
-  dif.b = sph->mat_diffuse[2] * n_dot_l;
+	float n_dot_l = vec_dot(n, l);
+	dif.r = sph->mat_diffuse[0] * n_dot_l;
+	dif.g = sph->mat_diffuse[1] * n_dot_l;
+	dif.b = sph->mat_diffuse[2] * n_dot_l;
 
-  float v_dot_r = pow(vec_dot(v, r), sph->mat_shineness);
-  if (v_dot_r < 0.0)
-    v_dot_r = 0.0;
-  spec.r = sph->mat_specular[0] * v_dot_r;
-  spec.g = sph->mat_specular[1] * v_dot_r;
-  spec.b = sph->mat_specular[2] * v_dot_r;
+	float v_dot_r = pow(vec_dot(v, r), sph->mat_shineness);
+	spec.r = sph->mat_specular[0] * v_dot_r;
+	spec.g = sph->mat_specular[1] * v_dot_r;
+	spec.b = sph->mat_specular[2] * v_dot_r;
 
-  //if (amb.r > 1.0 || amb.r < 0.0 || dif.r < 0.0 || dif.r > 1.0
-  //  || spec.r < 0.0 || spec.r > 1.0)
-  //  printf("red: a = %f, d = %f, s = %f\n", amb.r, dif.r, spec.r);
-  //if (amb.g > 1.0 || amb.g < 0.0 || dif.g < 0.0 || dif.g > 1.0
-  //  || spec.g < 0.0 || spec.g > 1.0)
-  //  printf("grn: a = %f, d = %f, s = %f\n", amb.g, dif.g, spec.g);
-  //if (amb.b > 1.0 || amb.b < 0.0 || dif.b < 0.0 || dif.b > 1.0
-  //  || spec.b < 0.0 || spec.b > 1.0)
-  //  printf("blu: a = %f, d = %f, s = %f\n", amb.b, dif.b, spec.b);
-
-  final_colour.r = amb.r + decay * light1_intensity[0] * (dif.r + spec.r);
-  final_colour.g = amb.g + decay * light1_intensity[1] * (dif.g + spec.g);
-  final_colour.b = amb.b + decay * light1_intensity[2] * (dif.b + spec.b);
-
-  printf("r = %f, g = %f, b = %f\n", final_colour.r, final_colour.g, final_colour.b);
+	final_colour.r = amb.r + decay * shadow * light1_intensity[0] * (dif.r + spec.r);
+	final_colour.g = amb.g + decay * shadow * light1_intensity[1] * (dif.g + spec.g);
+	final_colour.b = amb.b + decay * shadow * light1_intensity[2] * (dif.b + spec.b);
 
 	return final_colour;
 }
@@ -102,26 +97,50 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
-RGB_float recursive_ray_trace(Point origin, Vector ray) {
+RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *sph_origin) {
 	RGB_float colour = {0};
-  Point hit;
+	Point hit;
+	Spheres *sph;
 
-  Spheres *sph = intersect_scene(origin, ray, scene, &hit);
-  if (sph != NULL)
-  {
-    RGB_float glo_amb;
-    glo_amb.r = global_ambient[0];
-    glo_amb.g = global_ambient[1];
-    glo_amb.b = global_ambient[2];
+	if (recursion > step_max)
+		return colour;
+	else if (recursion == 0)
+		sph = intersect_scene(origin, ray, scene, &hit, -1);
+	else if (sph_origin != NULL)
+		sph = intersect_scene(origin, ray, scene, &hit, sph_origin->index);
+	else
+		return colour;
 
-    RGB_float phong_colour = phong(hit, get_vec(eye_pos, hit), sphere_normal(hit, sph), sph);
-  
-    colour.r += phong_colour.r;
-    colour.g += phong_colour.g;
-    colour.b += phong_colour.b;
-  }
-  else
-    colour = background_clr;
+	if (sph != NULL)
+	{
+		Vector norm = sphere_normal(hit, sph);
+		RGB_float phong_colour = phong(hit, get_vec(eye_pos, hit), norm, sph);
+
+		colour.r += phong_colour.r;
+		colour.g += phong_colour.g;
+		colour.b += phong_colour.b;
+
+		// Reflections
+		if (reflect_on == 1)
+		{
+			Vector reversed_ray = vec_scale(ray, -1.0);
+			Vector r = vec_minus(vec_scale(norm, 2*vec_dot(norm, reversed_ray)), reversed_ray);
+			RGB_float reflect_colour = recursive_ray_trace(hit, r, recursion+1, sph);
+			reflect_colour.r *= sph->reflectance;
+			reflect_colour.g *= sph->reflectance;
+			reflect_colour.b *= sph->reflectance;
+			colour.r += reflect_colour.r;
+			colour.g += reflect_colour.g;
+			colour.b += reflect_colour.b;
+		}
+
+		// Normalization
+		if (colour.r > 1.0) colour.r = 1.0;
+		if (colour.g > 1.0) colour.g = 1.0;
+		if (colour.b > 1.0) colour.b = 1.0;
+	}
+	else
+		colour = background_clr;
 
 
 	return colour;
@@ -136,47 +155,38 @@ RGB_float recursive_ray_trace(Point origin, Vector ray) {
  * if you must.
  *********************************************************************/
 void ray_trace() {
-  int i, j;
-  float x_grid_size = image_width / float(win_width);
-  float y_grid_size = image_height / float(win_height);
-  float x_start = -0.5 * image_width;
-  float y_start = -0.5 * image_height;
-  RGB_float ret_color;
-  Point cur_pixel_pos;
-  Vector ray;
+	int i, j;
+	float x_grid_size = image_width / float(win_width);
+	float y_grid_size = image_height / float(win_height);
+	float x_start = -0.5 * image_width;
+	float y_start = -0.5 * image_height;
+	RGB_float ret_color;
+	Point cur_pixel_pos;
+	Vector ray;
 
-  // ray is cast through center of pixel
-  cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
-  cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
-  cur_pixel_pos.z = image_plane;
+	// ray is cast through center of pixel
+	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
+	cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
+	cur_pixel_pos.z = image_plane;
 
-  for (i=0; i<win_height; i++) {
-    for (j=0; j<win_width; j++) {
-      ray = get_vec(eye_pos, cur_pixel_pos);
+	for (i=0; i<win_height; i++) {
+		for (j=0; j<win_width; j++) {
+			ray = get_vec(eye_pos, cur_pixel_pos);
 
-      //
-      // You need to change this!!!
-      //
-      ret_color = recursive_ray_trace(cur_pixel_pos, ray);
+			ret_color = recursive_ray_trace(cur_pixel_pos, ray, 0, NULL);
+			// Parallel rays can be cast instead using below
+			// ray.x = ray.y = 0;
+			// ray.z = -1.0;
+			// ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
-      // Parallel rays can be cast instead using below
-      //
-      // ray.x = ray.y = 0;
-      // ray.z = -1.0;
-      // ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
+			frame[i][j][0] = GLfloat(ret_color.r);
+			frame[i][j][1] = GLfloat(ret_color.g);
+			frame[i][j][2] = GLfloat(ret_color.b);
 
-// Checkboard for testing
-//RGB_float clr = {float(i/32), 0, float(j/32)};
-//ret_color = clr;
+			cur_pixel_pos.x += x_grid_size;
+		}
 
-      frame[i][j][0] = GLfloat(ret_color.r);
-      frame[i][j][1] = GLfloat(ret_color.g);
-      frame[i][j][2] = GLfloat(ret_color.b);
-
-      cur_pixel_pos.x += x_grid_size;
-    }
-
-    cur_pixel_pos.y += y_grid_size;
-    cur_pixel_pos.x = x_start;
-  }
+		cur_pixel_pos.y += y_grid_size;
+		cur_pixel_pos.x = x_start;
+	}
 }

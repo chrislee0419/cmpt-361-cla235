@@ -77,7 +77,11 @@ int step_max = 1;
 // You can put your flags here
 // a flag to indicate whether you want to have shadows
 int shadow_on = 0;
-
+int reflect_on = 0;
+int refract_on = 0;
+int chess_on = 0;
+int stochastic_on = 0;
+int supersample_on = 0;
 
 // OpenGL
 const int NumPoints = 6;
@@ -220,7 +224,36 @@ int main( int argc, char **argv )
 	// Optional arguments
 	for(int i = 3; i < argc; i++)
 	{
-		if (strcmp(argv[i], "-s") == 0)	shadow_on = 1;
+		if (strcmp(argv[i], "+s") == 0)	
+			{
+				shadow_on = 1;
+				printf("Shadows: ON\n");
+			}
+		else if (strcmp(argv[i], "+l") == 0)
+			{
+				reflect_on = 1;
+				printf("Reflections: ON\n");
+			}
+		else if (strcmp(argv[i], "+r") == 0) 
+			{
+				refract_on = 1;
+				printf("Refraction: ON\n");
+			}
+		else if (strcmp(argv[i], "+c") == 0)
+			{
+				chess_on = 1;
+				printf("Chessboard: ON\n");
+			}
+		else if (strcmp(argv[i], "+f") == 0)
+			{
+				stochastic_on = 1;
+				printf("Stochastic rays: ON\n");
+			}
+		else if (strcmp(argv[i], "+p") == 0)
+			{
+				supersample_on = 1;
+				printf("Supersampling: ON\n");
+			}
 	}
 
 	//

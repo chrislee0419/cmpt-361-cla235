@@ -55,13 +55,20 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
  * which arguments to use for the function. For exmaple, note that you
  * should return the point of intersection to the calling function.
  **********************************************************************/
-Spheres *intersect_scene(Point o, Vector u, Spheres *sph, Point *hit) {
+Spheres *intersect_scene(Point o, Vector u, Spheres *sph, Point *hit, int sindex) {
   Spheres *closest_sph = NULL;
   Point closest_hit;
   float min = -1;
 
   while (sph != NULL)
   {
+    // skips this sphere (used for shadows)
+    if (sph->index == sindex)
+    {
+      sph = sph->next;
+      continue;
+    }
+
     Point hit;
     float intersect = intersect_sphere(o, u, sph, &hit);
 
@@ -75,7 +82,8 @@ Spheres *intersect_scene(Point o, Vector u, Spheres *sph, Point *hit) {
     sph = sph->next;
   }
 
-  *hit = closest_hit;
+  if (hit != NULL)
+    *hit = closest_hit;
 	return closest_sph;
 }
 
