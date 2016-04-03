@@ -43,6 +43,8 @@ extern int stochastic_on;
 extern int supersample_on;
 extern int step_max;
 
+extern Spheres *chessboard;
+
 /////////////////////////////////////////////////////////////////////
 
 /*********************************************************************
@@ -78,11 +80,13 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
 	}
 
 	float n_dot_l = vec_dot(n, l);
+	if (n_dot_l < 0.0) n_dot_l = 0.0;
 	dif.r = sph->mat_diffuse[0] * n_dot_l;
 	dif.g = sph->mat_diffuse[1] * n_dot_l;
 	dif.b = sph->mat_diffuse[2] * n_dot_l;
 
 	float v_dot_r = pow(vec_dot(v, r), sph->mat_shineness);
+	if (v_dot_r < 0.0) v_dot_r = 0.0;
 	spec.r = sph->mat_specular[0] * v_dot_r;
 	spec.g = sph->mat_specular[1] * v_dot_r;
 	spec.b = sph->mat_specular[2] * v_dot_r;
@@ -114,7 +118,15 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 
 	if (sph != NULL)
 	{
-		Vector norm = sphere_normal(hit, sph);
+		Vector norm;
+		if (sph->index == 0)
+		{
+			norm = board_normal();
+			board_colour(sph, hit);
+		}
+		else
+			norm = sphere_normal(hit, sph);
+
 		RGB_float phong_colour = phong(hit, get_vec(eye_pos, hit), norm, sph);
 
 		colour.r += phong_colour.r;

@@ -24,6 +24,7 @@
 #include "sphere.h"
 #include "image_util.h"
 #include "scene.h"
+#include "chessboard.h"
 
 //
 // Global variables
@@ -82,6 +83,8 @@ int refract_on = 0;
 int chess_on = 0;
 int stochastic_on = 0;
 int supersample_on = 0;
+
+Spheres *chessboard = NULL;
 
 // OpenGL
 const int NumPoints = 6;
@@ -242,6 +245,7 @@ int main( int argc, char **argv )
 		else if (strcmp(argv[i], "+c") == 0)
 			{
 				chess_on = 1;
+				scene = create_board(scene);
 				printf("Chessboard: ON\n");
 			}
 		else if (strcmp(argv[i], "+f") == 0)

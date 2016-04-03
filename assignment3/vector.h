@@ -1,6 +1,8 @@
 /**************************************************************************
  * This header provides you data types and functions to handle vectors
  ************************************************************************/
+#pragma once
+
 typedef struct {
   float x;
   float y;
