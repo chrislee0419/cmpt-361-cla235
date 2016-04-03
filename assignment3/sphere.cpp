@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include "chessboard.h"
 
 /**********************************************************************
  * This function intersects a ray with a given sphere 'sph'. You should
