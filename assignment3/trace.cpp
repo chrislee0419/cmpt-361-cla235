@@ -3,7 +3,6 @@
 #include <math.h>
 #include "global.h"
 #include "sphere.h"
-#include "chessboard.h"
 
 //
 // Global variables

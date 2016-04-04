@@ -24,7 +24,6 @@
 #include "sphere.h"
 #include "image_util.h"
 #include "scene.h"
-#include "chessboard.h"
 
 //
 // Global variables
@@ -84,7 +83,18 @@ int chess_on = 0;
 int stochastic_on = 0;
 int supersample_on = 0;
 
-Spheres *chessboard = NULL;
+// board attributes
+Point board_centre = {0, -1.75, -3};	// centre position
+float board_size = 2.0;					// length and width
+float board_amb[] = {0.3, 0.3, 0.3};	// ambient
+float board_dif[] = {0.5, 0.5, 0.5};	// diffuse
+float board_spec[] = {0.9, 0.9, 0.9};	// specular
+float board_shine = 20.0;				// shininess
+float board_refl = 0.3;					// reflectance
+
+float board_amb_alt[] = {0.0, 0.0, 0.0};	// ambient
+float board_dif_alt[] = {0.1, 0.1, 0.1};	// diffuse
+float board_spec_alt[] = {0.5, 0.5, 0.5};	// specular
 
 // OpenGL
 const int NumPoints = 6;
@@ -203,6 +213,20 @@ void keyboard(unsigned char key, int x, int y)
 	}
 }
 
+//////////////////
+//  CHESSBOARD  //
+//////////////////
+
+// returns a board object with Spheres attributes to the scene
+Spheres *create_board(Spheres *scene)
+{
+	Spheres *board;
+	printf("boarded\n");
+	board = add_sphere(	scene, board_centre, board_size,
+						board_amb, board_dif, board_spec,
+						board_shine, board_refl, 0);
+	return board;
+}
 
 
 //----------------------------------------------------------------------------
