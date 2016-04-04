@@ -169,7 +169,7 @@ void ray_trace() {
 	float y_grid_size = image_height / float(win_height);
 	float x_start = -0.5 * image_width;
 	float y_start = -0.5 * image_height;
-	RGB_float ret_color;
+	RGB_float ret_colour;
 	Point cur_pixel_pos;
 	Vector ray;
 
@@ -182,15 +182,60 @@ void ray_trace() {
 		for (j=0; j<win_width; j++) {
 			ray = get_vec(eye_pos, cur_pixel_pos);
 
-			ret_color = recursive_ray_trace(cur_pixel_pos, ray, 0, NULL);
+			ret_colour = recursive_ray_trace(cur_pixel_pos, ray, 0, NULL);
 			// Parallel rays can be cast instead using below
 			// ray.x = ray.y = 0;
 			// ray.z = -1.0;
 			// ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
-			frame[i][j][0] = GLfloat(ret_color.r);
-			frame[i][j][1] = GLfloat(ret_color.g);
-			frame[i][j][2] = GLfloat(ret_color.b);
+			if (supersample_on)
+			{
+				Point nw_pos, ne_pos, sw_pos, se_pos;
+				RGB_float temp_col;
+				// NW
+				nw_pos.x = cur_pixel_pos.x - 0.5 * x_grid_size;
+				nw_pos.y = cur_pixel_pos.y + 0.5 * y_grid_size;
+				nw_pos.z = cur_pixel_pos.z;
+				// NE
+				ne_pos.x = cur_pixel_pos.x + 0.5 * x_grid_size;
+				ne_pos.y = cur_pixel_pos.y + 0.5 * y_grid_size;
+				ne_pos.z = cur_pixel_pos.z;
+				// SW
+				sw_pos.x = cur_pixel_pos.x - 0.5 * x_grid_size;
+				sw_pos.y = cur_pixel_pos.y - 0.5 * y_grid_size;
+				sw_pos.z = cur_pixel_pos.z;
+				// SE
+				se_pos.x = cur_pixel_pos.x + 0.5 * x_grid_size;
+				se_pos.y = cur_pixel_pos.y - 0.5 * y_grid_size;
+				se_pos.z = cur_pixel_pos.z;
+
+				// get colour
+				temp_col = recursive_ray_trace(nw_pos, get_vec(eye_pos, nw_pos), 0, NULL);
+				ret_colour.r += temp_col.r;
+				ret_colour.g += temp_col.g;
+				ret_colour.b += temp_col.b;
+				temp_col = recursive_ray_trace(ne_pos, get_vec(eye_pos, ne_pos), 0, NULL);
+				ret_colour.r += temp_col.r;
+				ret_colour.g += temp_col.g;
+				ret_colour.b += temp_col.b;
+				temp_col = recursive_ray_trace(sw_pos, get_vec(eye_pos, sw_pos), 0, NULL);
+				ret_colour.r += temp_col.r;
+				ret_colour.g += temp_col.g;
+				ret_colour.b += temp_col.b;
+				temp_col = recursive_ray_trace(se_pos, get_vec(eye_pos, se_pos), 0, NULL);
+				ret_colour.r += temp_col.r;
+				ret_colour.g += temp_col.g;
+				ret_colour.b += temp_col.b;
+
+				// average
+				ret_colour.r /= 5.0;
+				ret_colour.g /= 5.0;
+				ret_colour.b /= 5.0;
+			}
+
+			frame[i][j][0] = GLfloat(ret_colour.r);
+			frame[i][j][1] = GLfloat(ret_colour.g);
+			frame[i][j][2] = GLfloat(ret_colour.b);
 
 			cur_pixel_pos.x += x_grid_size;
 		}

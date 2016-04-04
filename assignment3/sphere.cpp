@@ -98,17 +98,18 @@ void board_colour(Spheres *board, Point hit)
 	Point centre = board->center;
 	float size = board->radius;
 
-	Point origin = {centre.x-size, centre.y, centre.x+size};
+	Point origin = {centre.x-size, centre.y, centre.z+size};
 
+  //printf("board_colour (%f, %f, %f): ", hit.x, hit.y, hit.z);
 	int i;
 	for (i = 0; i < 64; i++)
 	{
 		int x = i % 8;
-		int x1 = origin.x + (x*2*size);
-		int x2 = x1 + size/4.0;
+		float x1 = origin.x + (x*(size/4.0));
+		float x2 = x1 + size/4.0;
 
 		int z = i / 8;
-		int z1 = origin.z - (z+1*2*size);
+		float z1 = origin.z - ((z+1)*(size/4.0));
 
 		if (hit.z < z1)
 		{
@@ -116,10 +117,13 @@ void board_colour(Spheres *board, Point hit)
 			continue;
 		}
 		else if (hit.x < x1 || hit.x > x2)
+    {
 			continue;
+    }
 		else
 			break;
 	}
+  //printf("\n");
 
 	// even rows
 	if ( (i/8)%2 == 0 )
