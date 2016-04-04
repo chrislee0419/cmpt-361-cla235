@@ -51,6 +51,10 @@ float intersect_board(Point orig, Vector ray, Spheres *board, Point *hit)
 	else if (board->index != 0)
 		return -1.0;
 
+	printf("board hit\n");
+
+	normalize(&ray);
+
 	Vector board_norm = board_normal();
 	float a = board_norm.x;
 	float b = board_norm.y;

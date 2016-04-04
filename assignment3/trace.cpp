@@ -50,7 +50,7 @@ extern Spheres *chessboard;
 /*********************************************************************
  * Phong illumination - you need to implement this!
  * q = point on surface
- * v = vector from view to point q
+ * v = vector from point q to the eye
  * n = normal vector of point q
  * sph = sphere containing point q
  *********************************************************************/
@@ -76,7 +76,7 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
 	if (shadow_on == 1)
 	{
 		if (intersect_scene(q, l, scene, NULL, sph->index) != NULL)
-				shadow = 0.0;
+			shadow = 0.0;
 	}
 
 	float n_dot_l = vec_dot(n, l);
@@ -85,11 +85,13 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
 	dif.g = sph->mat_diffuse[1] * n_dot_l;
 	dif.b = sph->mat_diffuse[2] * n_dot_l;
 
-	float v_dot_r = pow(vec_dot(v, r), sph->mat_shineness);
-	if (v_dot_r < 0.0) v_dot_r = 0.0;
-	spec.r = sph->mat_specular[0] * v_dot_r;
-	spec.g = sph->mat_specular[1] * v_dot_r;
-	spec.b = sph->mat_specular[2] * v_dot_r;
+	float v_dot_r = vec_dot(v, r);
+	float spec_term = 0.0;
+	if (v_dot_r > 0.0)
+		spec_term = pow(v_dot_r, sph->mat_shineness);
+	spec.r = sph->mat_specular[0] * spec_term;
+	spec.g = sph->mat_specular[1] * spec_term;
+	spec.b = sph->mat_specular[2] * spec_term;
 
 	final_colour.r = amb.r + decay * shadow * light1_intensity[0] * (dif.r + spec.r);
 	final_colour.g = amb.g + decay * shadow * light1_intensity[1] * (dif.g + spec.g);
@@ -127,7 +129,7 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 		else
 			norm = sphere_normal(hit, sph);
 
-		RGB_float phong_colour = phong(hit, get_vec(eye_pos, hit), norm, sph);
+		RGB_float phong_colour = phong(hit, get_vec(hit, eye_pos), norm, sph);
 
 		colour.r += phong_colour.r;
 		colour.g += phong_colour.g;
@@ -146,11 +148,6 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 			colour.g += reflect_colour.g;
 			colour.b += reflect_colour.b;
 		}
-
-		// Normalization
-		if (colour.r > 1.0) colour.r = 1.0;
-		if (colour.g > 1.0) colour.g = 1.0;
-		if (colour.b > 1.0) colour.b = 1.0;
 	}
 	else
 		colour = background_clr;
