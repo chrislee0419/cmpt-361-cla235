@@ -12,6 +12,8 @@ extern float board_amb_alt[];	// ambient
 extern float board_dif_alt[];	// diffuse
 extern float board_spec_alt[];	// specular
 
+extern Point eye_pos;
+
 /**********************************************************************
  * This function intersects a ray with a given sphere 'sph'. You should
  * use the parametric representation of a line and do the intersection.
@@ -202,7 +204,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
 	float res1 = (-b + sqrt_dis)/(2 * a);
 	float res2 = (-b - sqrt_dis)/(2 * a);
 	float res;
-	if ( res1 >= 0 && res1 < res2 )
+	if ( res1 >= 0 && (res1 < res2 || res2 < 0) )
 	{
 		res = res1;
 		hit->x = o.x + res * u.x;

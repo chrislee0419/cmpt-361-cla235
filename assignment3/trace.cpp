@@ -187,9 +187,8 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 			colour.b += stoc_colour.b;
 		}
 	}
-	else
+	else if (stoc == 0)
 		colour = background_clr;
-
 
 	return colour;
 }
