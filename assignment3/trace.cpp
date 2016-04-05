@@ -46,6 +46,21 @@ extern Spheres *chessboard;
 
 /////////////////////////////////////////////////////////////////////
 
+// returns a vector that is <90 degrees from the normal
+Vector random_ray(Vector n)
+{
+	Vector random = {-n.x, -n.y, -n.z};
+	while (vec_dot(random, n) < 0)
+	{
+		random.x = rand();
+		random.y = rand();
+		random.z = rand();
+	}
+
+	return random;
+}
+
+
 /*********************************************************************
  * Phong illumination - you need to implement this!
  * q = point on surface
@@ -147,6 +162,18 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 			colour.g += reflect_colour.g;
 			colour.b += reflect_colour.b;
 		}
+
+		// Stochasitic rays
+		if (stochastic_on == 1)
+		{
+			RGB_float stoc_colour;
+
+			
+
+			colour.r += stoc_colour.r;
+			colour.g += stoc_colour.g;
+			colour.b += stoc_colour.b;
+		}
 	}
 	else
 		colour = background_clr;
@@ -188,7 +215,7 @@ void ray_trace() {
 			// ray.z = -1.0;
 			// ret_color = recursive_ray_trace(cur_pixel_pos, ray, 1);
 
-			if (supersample_on)
+			if (supersample_on == 1)
 			{
 				Point nw_pos, ne_pos, sw_pos, se_pos;
 				RGB_float temp_col;
