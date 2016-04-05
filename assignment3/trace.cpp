@@ -52,11 +52,10 @@ Vector random_ray(Vector n)
 	Vector random = {-n.x, -n.y, -n.z};
 	while (vec_dot(random, n) < 0)
 	{
-		random.x = rand();
-		random.y = rand();
-		random.z = rand();
+		random.x = (rand()*2) - 1.0;
+		random.y = (rand()*2) - 1.0;
+		random.z = (rand()*2) - 1.0;
 	}
-
 	return random;
 }
 
@@ -118,7 +117,7 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
  * This is the recursive ray tracer - you need to implement this!
  * You should decide what arguments to use.
  ************************************************************************/
-RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *sph_origin) {
+RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *sph_origin, int stoc) {
 	RGB_float colour = {0};
 	Point hit;
 	Spheres *sph;
@@ -154,21 +153,34 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 		{
 			Vector reversed_ray = vec_scale(ray, -1.0);
 			Vector r = vec_minus(vec_scale(norm, 2*vec_dot(norm, reversed_ray)), reversed_ray);
-			RGB_float reflect_colour = recursive_ray_trace(hit, r, recursion+1, sph);
-			reflect_colour.r *= sph->reflectance;
-			reflect_colour.g *= sph->reflectance;
-			reflect_colour.b *= sph->reflectance;
+			RGB_float reflect_colour = recursive_ray_trace(hit, r, recursion+1, sph, stoc);
+			reflect_colour = clr_scale(reflect_colour, sph->reflectance);
 			colour.r += reflect_colour.r;
 			colour.g += reflect_colour.g;
 			colour.b += reflect_colour.b;
 		}
 
-		// Stochasitic rays
-		if (stochastic_on == 1)
+		// Stochastic rays
+		if (stochastic_on == 1 && stoc == 0)
 		{
-			RGB_float stoc_colour;
-
+			RGB_float stoc_colour = {0, 0, 0};
 			
+			for (int i = 0; i < STOC_RAYS; i++)
+			{
+				if (sph->mat_diffuse[0] == 0 ||
+					sph->mat_diffuse[1] == 0 ||
+					sph->mat_diffuse[2] == 0)
+					break;
+
+				RGB_float stoc_rec_colour;
+				stoc_rec_colour = recursive_ray_trace(hit, random_ray(norm), recursion+1, sph, 1);
+
+				stoc_colour.r += stoc_rec_colour.r * sph->mat_diffuse[0];
+				stoc_colour.g += stoc_rec_colour.g * sph->mat_diffuse[1];
+				stoc_colour.b += stoc_rec_colour.b * sph->mat_diffuse[2];
+			}
+
+			stoc_colour = clr_scale(stoc_colour, 1.0/(float)STOC_RAYS);
 
 			colour.r += stoc_colour.r;
 			colour.g += stoc_colour.g;
@@ -200,6 +212,8 @@ void ray_trace() {
 	Point cur_pixel_pos;
 	Vector ray;
 
+	srand(0);
+
 	// ray is cast through center of pixel
 	cur_pixel_pos.x = x_start + 0.5 * x_grid_size;
 	cur_pixel_pos.y = y_start + 0.5 * y_grid_size;
@@ -209,7 +223,7 @@ void ray_trace() {
 		for (j=0; j<win_width; j++) {
 			ray = get_vec(eye_pos, cur_pixel_pos);
 
-			ret_colour = recursive_ray_trace(cur_pixel_pos, ray, 0, NULL);
+			ret_colour = recursive_ray_trace(cur_pixel_pos, ray, 0, NULL, 0);
 			// Parallel rays can be cast instead using below
 			// ray.x = ray.y = 0;
 			// ray.z = -1.0;
@@ -237,19 +251,19 @@ void ray_trace() {
 				se_pos.z = cur_pixel_pos.z;
 
 				// get colour
-				temp_col = recursive_ray_trace(nw_pos, get_vec(eye_pos, nw_pos), 0, NULL);
+				temp_col = recursive_ray_trace(nw_pos, get_vec(eye_pos, nw_pos), 0, NULL, 0);
 				ret_colour.r += temp_col.r;
 				ret_colour.g += temp_col.g;
 				ret_colour.b += temp_col.b;
-				temp_col = recursive_ray_trace(ne_pos, get_vec(eye_pos, ne_pos), 0, NULL);
+				temp_col = recursive_ray_trace(ne_pos, get_vec(eye_pos, ne_pos), 0, NULL, 0);
 				ret_colour.r += temp_col.r;
 				ret_colour.g += temp_col.g;
 				ret_colour.b += temp_col.b;
-				temp_col = recursive_ray_trace(sw_pos, get_vec(eye_pos, sw_pos), 0, NULL);
+				temp_col = recursive_ray_trace(sw_pos, get_vec(eye_pos, sw_pos), 0, NULL, 0);
 				ret_colour.r += temp_col.r;
 				ret_colour.g += temp_col.g;
 				ret_colour.b += temp_col.b;
-				temp_col = recursive_ray_trace(se_pos, get_vec(eye_pos, se_pos), 0, NULL);
+				temp_col = recursive_ray_trace(se_pos, get_vec(eye_pos, se_pos), 0, NULL, 0);
 				ret_colour.r += temp_col.r;
 				ret_colour.g += temp_col.g;
 				ret_colour.b += temp_col.b;

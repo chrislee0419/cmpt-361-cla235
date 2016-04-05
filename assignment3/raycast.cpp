@@ -87,10 +87,10 @@ int supersample_on = 0;
 Point board_centre = {0, -1.75, -3};	// centre position
 float board_size = 2.0;					// length and width
 float board_amb[] = {1.0, 1.0, 1.0};	// ambient
-float board_dif[] = {1.0, 1.0, 1.0};	// diffuse
+float board_dif[] = {0.8, 0.8, 0.8};	// diffuse
 float board_spec[] = {1.0, 1.0, 1.0};	// specular
 float board_shine = 20.0;				// shininess
-float board_refl = 0.3;					// reflectance
+float board_refl = 0.2;					// reflectance
 
 float board_amb_alt[] = {0.0, 0.0, 0.0};	// ambient
 float board_dif_alt[] = {0.1, 0.1, 0.1};	// diffuse
