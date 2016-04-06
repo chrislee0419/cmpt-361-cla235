@@ -46,6 +46,21 @@ extern Spheres *chessboard;
 
 /////////////////////////////////////////////////////////////////////
 
+// returns 0 if TIR, else 1
+int snells(Vector l, Vector n, float index1, float index2, Vector *res)
+{
+	float nr = index1/index2;
+	float root = 1.0 - (nr*nr) * (1.0 - pow(vec_dot(n, l), 2));
+
+	// check for TIR
+	if (root < 0.0)
+		return -0;
+
+	float scale = nr * vec_dot(n, l) - sqrt(root);
+	*res = vec_minus(vec_scale(n, scale), vec_scale(l, nr));
+	return 1;
+}
+
 // returns a vector that is <90 degrees from the normal
 Vector random_ray(Vector n)
 {
@@ -119,7 +134,7 @@ RGB_float phong(Point q, Vector v, Vector n, Spheres *sph) {
  ************************************************************************/
 RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *sph_origin, int stoc) {
 	RGB_float colour = {0};
-	Point hit;
+	Point hit = {0};
 	Spheres *sph;
 
 	if (recursion > step_max)
@@ -142,11 +157,9 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 		else
 			norm = sphere_normal(hit, sph);
 
-		RGB_float phong_colour = phong(hit, get_vec(hit, eye_pos), norm, sph);
+		RGB_float phong_colour = phong(hit, get_vec(hit, origin), norm, sph);
 
-		colour.r += phong_colour.r;
-		colour.g += phong_colour.g;
-		colour.b += phong_colour.b;
+		colour = clr_add(colour, phong_colour);
 
 		// Reflections
 		if (reflect_on == 1)
@@ -155,9 +168,34 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 			Vector r = vec_minus(vec_scale(norm, 2*vec_dot(norm, reversed_ray)), reversed_ray);
 			RGB_float reflect_colour = recursive_ray_trace(hit, r, recursion+1, sph, stoc);
 			reflect_colour = clr_scale(reflect_colour, sph->reflectance);
-			colour.r += reflect_colour.r;
-			colour.g += reflect_colour.g;
-			colour.b += reflect_colour.b;
+			colour = clr_add(colour, reflect_colour);
+		}
+
+		// Refraction
+		if (refract_on == 1 && sph->refract > 0.0 && sph->trans > 0.0)
+		{
+			Vector refract_vec;
+			RGB_float refract_colour = {0};
+			Point hit2 = {0};
+
+			// entered object (sphere or chessboard)
+			if (snells(get_vec(hit, origin), norm, 1.0, sph->refract, refract_vec) == 1)
+			{
+				// chessboard
+				if (sph->index == 0)
+				{
+					intersect_scene(hit, refract_vec, scene, &hit2, -1);
+				}
+				else
+				{
+
+				}
+			}
+			// TIR
+			else
+			{
+
+			}
 		}
 
 		// Stochastic rays
@@ -182,9 +220,7 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 
 			stoc_colour = clr_scale(stoc_colour, 1.0/(float)STOC_RAYS);
 
-			colour.r += stoc_colour.r;
-			colour.g += stoc_colour.g;
-			colour.b += stoc_colour.b;
+			colour = clr_add(colour, stoc_colour);
 		}
 	}
 	else if (stoc == 0)
@@ -210,6 +246,11 @@ void ray_trace() {
 	RGB_float ret_colour;
 	Point cur_pixel_pos;
 	Vector ray;
+
+	sph_ref *references = (sph_ref*)malloc(sizeof(references));
+	references->sph = NULL;
+	references->trans = 1.0;
+	references->next = NULL;
 
 	srand(0);
 

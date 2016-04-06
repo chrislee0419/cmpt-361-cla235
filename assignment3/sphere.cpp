@@ -188,6 +188,7 @@ void board_colour(Spheres *board, Point hit)
 //////////////////////////////////////////////////////////////////////
 
 float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
+	float epsilon = 1e-6;
 	normalize(&u);
 	Vector v = get_vec(sph->center, o);
 	float a = pow(vec_len(u), 2);
@@ -204,7 +205,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
 	float res1 = (-b + sqrt_dis)/(2 * a);
 	float res2 = (-b - sqrt_dis)/(2 * a);
 	float res;
-	if ( res1 >= 0 && (res1 < res2 || res2 < 0) )
+	if ( res1 > epsilon && (res1 < res2 || res2 < 0) )
 	{
 		res = res1;
 		hit->x = o.x + res * u.x;
@@ -212,7 +213,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
 		hit->z = o.z + res * u.z;
 		return res;
 	}
-	else if ( res2 >= 0 && res2 <= res1)
+	else if ( res2 > epsilon && res2 <= res1)
 	{
 		res = res2;
 		hit->x = o.x + res * u.x;
@@ -272,7 +273,7 @@ Spheres *intersect_scene(Point o, Vector u, Spheres *sph, Point *hit, int sindex
  *****************************************************/
 Spheres *add_sphere(Spheres *slist, Point ctr, float rad, float amb[],
 				float dif[], float spe[], float shine, 
-				float refl, int sindex) {
+				float refl, float refract, float trans, int sindex) {
 	Spheres *new_sphere;
 
 	new_sphere = (Spheres *)malloc(sizeof(Spheres));
@@ -290,6 +291,8 @@ Spheres *add_sphere(Spheres *slist, Point ctr, float rad, float amb[],
 	(new_sphere->mat_specular)[2] = spe[2];
 	new_sphere->mat_shineness = shine;
 	new_sphere->reflectance = refl;
+	new_sphere->refract = refract;
+	new_sphere->trans = trans;
 	new_sphere->next = NULL;
 
 	if (slist == NULL) { // first object

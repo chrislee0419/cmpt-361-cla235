@@ -15,6 +15,8 @@ typedef struct sphere {
   float mat_diffuse[3];
   float mat_specular[3];
   float mat_shineness;
+  float refract;
+  float trans;
 
   float reflectance;       // this number [0,1] determines how much 
                            // reflected light contributes to the color
@@ -22,15 +24,29 @@ typedef struct sphere {
   struct sphere *next;
 } Spheres;   // a list of spheres
 
+typedef struct reference {
+  Spheres *sph;
+  float index;
+  float trans;
+  struct reference *next;
+} sph_ref;
+
 // intersect ray with sphere
 Spheres *intersect_scene(Point, Vector, Spheres *, Point *, int);
 // return the unit normal at a point on sphere
 Vector sphere_normal(Point, Spheres *);
 // add a sphere to the sphere list
-Spheres *add_sphere(Spheres *, Point, float, float [], float [], float [], float, float, int);
+Spheres *add_sphere(Spheres *, Point, float, float [], float [], float [], float, float, float, float, int);
 
 // chessboard
 Spheres *create_board(Spheres*);
 float intersect_board(Point, Vector, Spheres*, Point*);
 void board_colour(Spheres*, Point);
 Vector board_normal();
+
+// references
+void remove_ref(sph_ref *ref, Spheres *sph);
+void add_ref(sph_ref *ref, Spheres *sph);
+int get_sph_index(sph_ref *ref);
+float get_index(sph_ref *ref);
+float get_trans(sph_ref *ref);
