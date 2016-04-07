@@ -84,8 +84,8 @@ int stochastic_on = 0;
 int supersample_on = 0;
 
 // board attributes
-Point board_centre = {0, -1.75, -3};	// centre position
-float board_size = 2.0;					// length and width
+Point board_centre = {0, -1.75, -4};	// centre position
+float board_size = 2.5;					// length and width
 float board_amb[] = {1.0, 1.0, 1.0};	// ambient
 float board_dif[] = {0.8, 0.8, 0.8};	// diffuse
 float board_spec[] = {1.0, 1.0, 1.0};	// specular

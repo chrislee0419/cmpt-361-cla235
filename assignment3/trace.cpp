@@ -178,24 +178,48 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 			RGB_float refract_colour = {0};
 			Point hit2 = {0};
 
-			// entered object (sphere or chessboard)
-			if (snells(get_vec(hit, origin), norm, 1.0, sph->refract, refract_vec) == 1)
+			// chessboard (should just pass through)
+			if (sph->index == 0)
 			{
-				// chessboard
-				if (sph->index == 0)
-				{
-					intersect_scene(hit, refract_vec, scene, &hit2, -1);
-				}
-				else
-				{
-
-				}
+				refract_colour = recursive_ray_trace(hit, ray, recursion+1, NULL, 0);
+				colour = clr_add(colour, clr_scale(refract_colour, sph->trans));
 			}
-			// TIR
 			else
 			{
+				if ( snells(get_vec(hit, origin), norm, 1.0, sph->refract, &refract_vec) == 1 )
+				{
+					if ( intersect_scene(hit, refract_vec, sph, &hit2, -1) != NULL )
+					{
+						Vector hit2_hit = get_vec(hit2, hit);
+						Vector rev_norm = vec_scale(sphere_normal(hit2, sph), -1.0);
+						if ( snells(hit2_hit, rev_norm, sph->refract, 1.0, &refract_vec) == 1 )
+						{
+							refract_colour = recursive_ray_trace(hit2, refract_vec, recursion+1, NULL, 0);
+							colour = clr_add(colour, clr_scale(refract_colour, sph->trans));
+						}
+					}
 
+				}
 			}
+
+			// entered object (sphere or chessboard)
+			// if (snells(get_vec(hit, origin), norm, 1.0, sph->refract, refract_vec) == 1)
+			// {
+			// 	// chessboard
+			// 	if (sph->index == 0)
+			// 	{
+			// 		intersect_scene(hit, refract_vec, scene, &hit2, -1);
+			// 	}
+			// 	else
+			// 	{
+
+			// 	}
+			// }
+			// // TIR
+			// else
+			// {
+
+			// }
 		}
 
 		// Stochastic rays
