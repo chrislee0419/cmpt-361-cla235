@@ -49,6 +49,8 @@ extern Spheres *chessboard;
 // returns 0 if TIR, else 1
 int snells(Vector l, Vector n, float index1, float index2, Vector *res)
 {
+	normalize(&n);
+	normalize(&l);
 	float nr = index1/index2;
 	float root = 1.0 - (nr*nr) * (1.0 - pow(vec_dot(n, l), 2));
 
@@ -58,6 +60,13 @@ int snells(Vector l, Vector n, float index1, float index2, Vector *res)
 
 	float scale = nr * vec_dot(n, l) - sqrt(root);
 	*res = vec_minus(vec_scale(n, scale), vec_scale(l, nr));
+	// printf("i1 = %f, i2 = %f, nr = %f\n", index1, index2, nr);
+	// float angle1 = acos( vec_dot(n, l) / (vec_len(n)*vec_len(l)) );
+	// Vector neg_n = vec_scale(n, -1.0);
+	// float angle2 = acos( vec_dot(neg_n, *res) / (vec_len(neg_n)*vec_len(*res)) );
+	// float snells = sin(angle2)/sin(angle1);
+	// printf("ang1 = %f, ang2 = %f, snell = %f\n", angle1, angle2, snells);
+
 	return 1;
 }
 
@@ -174,51 +183,30 @@ RGB_float recursive_ray_trace(Point origin, Vector ray, int recursion, Spheres *
 		// Refraction
 		if (refract_on == 1 && sph->refract > 0.0 && sph->trans > 0.0)
 		{
-			Vector refract_vec;
-			RGB_float refract_colour = {0};
-			Point hit2 = {0};
+			// Vector refract_vec;
+			// RGB_float refract_colour = {0};
 
-			// chessboard (should just pass through)
-			if (sph->index == 0)
-			{
-				refract_colour = recursive_ray_trace(hit, ray, recursion+1, NULL, 0);
-				colour = clr_add(colour, clr_scale(refract_colour, sph->trans));
-			}
-			else
-			{
-				if ( snells(get_vec(hit, origin), norm, 1.0, sph->refract, &refract_vec) == 1 )
-				{
-					if ( intersect_scene(hit, refract_vec, sph, &hit2, -1) != NULL )
-					{
-						Vector hit2_hit = get_vec(hit2, hit);
-						Vector rev_norm = vec_scale(sphere_normal(hit2, sph), -1.0);
-						if ( snells(hit2_hit, rev_norm, sph->refract, 1.0, &refract_vec) == 1 )
-						{
-							refract_colour = recursive_ray_trace(hit2, refract_vec, recursion+1, NULL, 0);
-							colour = clr_add(colour, clr_scale(refract_colour, sph->trans));
-						}
-					}
-
-				}
-			}
-
-			// entered object (sphere or chessboard)
-			// if (snells(get_vec(hit, origin), norm, 1.0, sph->refract, refract_vec) == 1)
+			// // chessboard (should just pass through)
+			// if (sph->index == 0)
 			// {
-			// 	// chessboard
-			// 	if (sph->index == 0)
-			// 	{
-			// 		intersect_scene(hit, refract_vec, scene, &hit2, -1);
-			// 	}
-			// 	else
-			// 	{
-
-			// 	}
+			// 	refract_colour = recursive_ray_trace(hit, ray, recursion+1, sph, 0);
+			// 	colour = clr_add(colour, clr_scale(refract_colour, sph->trans));
 			// }
-			// // TIR
-			// else
+			// // assumes objects do not overlap
+			// else if ( snells(get_vec(hit, origin), norm, 1.0, sph->refract, &refract_vec) > 0 )
 			// {
-
+			// 	Point hit2;
+			// 	float result = intersect_sphere(hit, refract_vec, sph, &hit2);
+			// 	if (result > 0.0)
+			// 	{
+			// 		Vector hit2_hit = get_vec(hit2, hit);
+			// 		Vector rev_norm = vec_scale(sphere_normal(hit2, sph), -1.0);
+			// 		if ( snells(hit2_hit, rev_norm, sph->refract, 1.0, &refract_vec) > 0 )
+			// 		{
+			// 			refract_colour = recursive_ray_trace(hit2, refract_vec, recursion+1, sph, 0);
+			// 			colour = clr_add(colour, clr_scale(refract_colour, sph->trans));
+			// 		}
+			// 	}
 			// }
 		}
 
@@ -270,11 +258,6 @@ void ray_trace() {
 	RGB_float ret_colour;
 	Point cur_pixel_pos;
 	Vector ray;
-
-	sph_ref *references = (sph_ref*)malloc(sizeof(references));
-	references->sph = NULL;
-	references->trans = 1.0;
-	references->next = NULL;
 
 	srand(0);
 

@@ -24,14 +24,8 @@ typedef struct sphere {
   struct sphere *next;
 } Spheres;   // a list of spheres
 
-typedef struct reference {
-  Spheres *sph;
-  float index;
-  float trans;
-  struct reference *next;
-} sph_ref;
-
 // intersect ray with sphere
+float intersect_sphere(Point, Vector, Spheres*, Point*);
 Spheres *intersect_scene(Point, Vector, Spheres *, Point *, int);
 // return the unit normal at a point on sphere
 Vector sphere_normal(Point, Spheres *);
@@ -44,9 +38,3 @@ float intersect_board(Point, Vector, Spheres*, Point*);
 void board_colour(Spheres*, Point);
 Vector board_normal();
 
-// references
-void remove_ref(sph_ref *ref, Spheres *sph);
-void add_ref(sph_ref *ref, Spheres *sph);
-int get_sph_index(sph_ref *ref);
-float get_index(sph_ref *ref);
-float get_trans(sph_ref *ref);

@@ -205,7 +205,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
 	float res1 = (-b + sqrt_dis)/(2 * a);
 	float res2 = (-b - sqrt_dis)/(2 * a);
 	float res;
-	if ( res1 > epsilon && (res1 < res2 || res2 < 0) )
+	if ( res1 > epsilon && (res1 < res2 || res2 <= epsilon) )
 	{
 		res = res1;
 		hit->x = o.x + res * u.x;
@@ -213,7 +213,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
 		hit->z = o.z + res * u.z;
 		return res;
 	}
-	else if ( res2 > epsilon && res2 <= res1)
+	else if ( res2 > epsilon && (res2 < res1 || res1 <= epsilon) )
 	{
 		res = res2;
 		hit->x = o.x + res * u.x;
@@ -221,7 +221,7 @@ float intersect_sphere(Point o, Vector u, Spheres *sph, Point *hit) {
 		hit->z = o.z + res * u.z;
 		return res;
 	}
-	return -1.0;
+	return -2.0;
 }
 
 /*********************************************************************

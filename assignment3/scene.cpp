@@ -157,7 +157,7 @@ void set_up_user_scene() {
 	float sphere4_shineness = 20;
 	float sphere4_reflectance = 0.7;
 	float sphere4_refract = 1.2;
-	float sphere4_trans = 0.7;
+	float sphere4_trans = 0.9;
 	scene = add_sphere(scene, sphere4_ctr, sphere4_rad,
 			sphere4_ambient, sphere4_diffuse, sphere4_specular,
 			sphere4_shineness, sphere4_reflectance,
@@ -179,7 +179,7 @@ void set_up_user_scene() {
 			sphere5_refract, sphere5_trans, 5);
 
 	// sphere 6 - orange
-	Point sphere6_ctr = {1.5, 1.4, -2.5};
+	Point sphere6_ctr = {1.3, 0.5, -3.7};
 	float sphere6_rad = 0.8;
 	float sphere6_ambient[] = {0.8, 0.4, 0.1};
 	float sphere6_diffuse[] = {0.9, 0.4, 0.1};
